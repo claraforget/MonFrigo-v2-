@@ -1,15 +1,22 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: FrigoMenu API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: fridge
+    description: Fridge ingredients management
+  - name: preferences
+    description: User preferences management
+  - name: menu
+    description: AI-generated menu management
+  - name: stores
+    description: Store and pricing operations
 paths:
   /healthz:
     get:
@@ -24,6 +31,178 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /fridge/ingredients:
+    get:
+      operationId: getFridgeIngredients
+      tags: [fridge]
+      summary: Get all fridge ingredients
+      responses:
+        "200":
+          description: List of ingredients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FridgeIngredient"
+    post:
+      operationId: addFridgeIngredient
+      tags: [fridge]
+      summary: Add an ingredient to the fridge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFridgeIngredient"
+      responses:
+        "201":
+          description: Ingredient added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FridgeIngredient"
+
+  /fridge/ingredients/{id}:
+    put:
+      operationId: updateFridgeIngredient
+      tags: [fridge]
+      summary: Update a fridge ingredient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFridgeIngredient"
+      responses:
+        "200":
+          description: Ingredient updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FridgeIngredient"
+    delete:
+      operationId: deleteFridgeIngredient
+      tags: [fridge]
+      summary: Remove a fridge ingredient
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Ingredient deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
+
+  /preferences:
+    get:
+      operationId: getPreferences
+      tags: [preferences]
+      summary: Get user preferences
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+    put:
+      operationId: savePreferences
+      tags: [preferences]
+      summary: Save user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserPreferencesInput"
+      responses:
+        "200":
+          description: Preferences saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
+  /menu/generate:
+    post:
+      operationId: generateMenu
+      tags: [menu]
+      summary: Generate a weekly menu using AI
+      responses:
+        "200":
+          description: Generated weekly menu
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyMenu"
+
+  /menu/current:
+    get:
+      operationId: getCurrentMenu
+      tags: [menu]
+      summary: Get the current generated menu
+      responses:
+        "200":
+          description: Current weekly menu or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyMenuOrNull"
+
+  /menu/shopping-list:
+    get:
+      operationId: getShoppingList
+      tags: [menu]
+      summary: Get the shopping list for the current menu
+      responses:
+        "200":
+          description: Shopping list items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShoppingItem"
+
+  /stores/nearby:
+    get:
+      operationId: getNearbyStores
+      tags: [stores]
+      summary: Get nearby grocery stores with price estimates
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Nearby stores with estimated totals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NearbyStore"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +213,271 @@ components:
       required:
         - status
 
+    FridgeIngredient:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        quantity:
+          type: string
+        unit:
+          type: string
+        category:
+          type: string
+        expiryDate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - quantity
+        - unit
+        - category
+        - createdAt
+
+    CreateFridgeIngredient:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: string
+        unit:
+          type: string
+        category:
+          type: string
+        expiryDate:
+          type: string
+          nullable: true
+      required:
+        - name
+        - quantity
+        - unit
+        - category
+
+    UpdateFridgeIngredient:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: string
+        unit:
+          type: string
+        category:
+          type: string
+        expiryDate:
+          type: string
+          nullable: true
+
+    DeleteResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+      required:
+        - success
+
+    UserPreferences:
+      type: object
+      properties:
+        id:
+          type: integer
+        cookingTimePerDay:
+          type: integer
+          description: Minutes available for cooking per day
+        weeklyBudget:
+          type: number
+          description: Weekly grocery budget in CAD
+        numberOfPeople:
+          type: integer
+        allergies:
+          type: array
+          items:
+            type: string
+        dietaryPreferences:
+          type: array
+          items:
+            type: string
+        cuisinePreferences:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - cookingTimePerDay
+        - weeklyBudget
+        - numberOfPeople
+        - allergies
+        - dietaryPreferences
+        - cuisinePreferences
+        - updatedAt
+
+    UserPreferencesInput:
+      type: object
+      properties:
+        cookingTimePerDay:
+          type: integer
+        weeklyBudget:
+          type: number
+        numberOfPeople:
+          type: integer
+        allergies:
+          type: array
+          items:
+            type: string
+        dietaryPreferences:
+          type: array
+          items:
+            type: string
+        cuisinePreferences:
+          type: array
+          items:
+            type: string
+      required:
+        - cookingTimePerDay
+        - weeklyBudget
+        - numberOfPeople
+        - allergies
+        - dietaryPreferences
+        - cuisinePreferences
+
+    WeeklyMenu:
+      type: object
+      properties:
+        id:
+          type: integer
+        weekStart:
+          type: string
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/DayMenu"
+        estimatedCost:
+          type: number
+        generatedAt:
+          type: string
+      required:
+        - id
+        - weekStart
+        - days
+        - estimatedCost
+        - generatedAt
+
+    WeeklyMenuOrNull:
+      type: object
+      properties:
+        found:
+          type: boolean
+        menu:
+          $ref: "#/components/schemas/WeeklyMenu"
+          nullable: true
+      required:
+        - found
+
+    DayMenu:
+      type: object
+      properties:
+        dayName:
+          type: string
+        breakfast:
+          $ref: "#/components/schemas/Meal"
+        lunch:
+          $ref: "#/components/schemas/Meal"
+        dinner:
+          $ref: "#/components/schemas/Meal"
+      required:
+        - dayName
+        - breakfast
+        - lunch
+        - dinner
+
+    Meal:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        cookingTime:
+          type: integer
+          description: Minutes to cook
+        servings:
+          type: integer
+        ingredients:
+          type: array
+          items:
+            type: string
+        instructions:
+          type: array
+          items:
+            type: string
+        estimatedCost:
+          type: number
+      required:
+        - name
+        - description
+        - cookingTime
+        - servings
+        - ingredients
+        - instructions
+        - estimatedCost
+
+    ShoppingItem:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: string
+        unit:
+          type: string
+        category:
+          type: string
+        estimatedPrice:
+          type: number
+        inFridge:
+          type: boolean
+      required:
+        - name
+        - quantity
+        - unit
+        - category
+        - estimatedPrice
+        - inFridge
+
+    NearbyStore:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        distance:
+          type: number
+          description: Distance in km
+        estimatedTotal:
+          type: number
+        savings:
+          type: number
+        lat:
+          type: number
+        lng:
+          type: number
+        googleMapsUrl:
+          type: string
+      required:
+        - name
+        - address
+        - distance
+        - estimatedTotal
+        - savings
+        - lat
+        - lng
+        - googleMapsUrl

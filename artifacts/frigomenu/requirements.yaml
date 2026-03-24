@@ -1,0 +1,23 @@
+packages:
+  "framer-motion": "For smooth page transitions, list animations, and delightful micro-interactions"
+  "react-hook-form": "For robust and performant form state management in preferences and ingredient forms"
+  "@hookform/resolvers": "To integrate Zod validation seamlessly with react-hook-form"
+  "date-fns": "For formatting dates in the menu and fridge items"
+  "clsx": "Utility for conditionally joining classNames"
+  "tailwind-merge": "Utility to merge tailwind classes without conflicts"
+
+images:
+  - path: "artifacts/frigomenu/public/images/hero-bg.png"
+    description: "Abstract, soft, out-of-focus background with fresh food colors: soft sage greens, warm citrus oranges, and creamy whites. Lots of negative space, highly aesthetic and modern, suitable for a web app header."
+    aspect_ratio: "16:9"
+  - path: "artifacts/frigomenu/public/images/empty-fridge.png"
+    description: "A minimal, modern 3D illustration of an open, clean refrigerator with only a few items inside. Soft pastel colors, friendly and inviting style."
+    aspect_ratio: "1:1"
+  - path: "artifacts/frigomenu/public/images/empty-menu.png"
+    description: "A minimal, modern 3D illustration of a blank recipe card or calendar with a chef's hat and some fresh herbs around it. Soft lighting, friendly and clean aesthetic."
+    aspect_ratio: "1:1"
+
+notes:
+  - The app uses React Query hooks generated in @workspace/api-client-react.
+  - The "Télécharger PDF" functionality relies on the browser's native print API (window.print()) combined with specific print CSS media queries to format the page as a clean document.
+  - Geolocation for the grocery store feature uses the native browser navigator.geolocation API.
