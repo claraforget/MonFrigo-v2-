@@ -12,11 +12,9 @@
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
   
-  /* Fresh Green */
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
   
-  /* Warm Orange */
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
   
@@ -25,7 +23,6 @@
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
   
-  /* Red/Coral */
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   
@@ -41,62 +38,60 @@
 
 :root {
   /* Soft warm cream background */
-  --background: 40 33% 98%;
-  --foreground: 20 14% 16%;
+  --background: 45 30% 97%;
+  --foreground: 25 15% 15%;
   
   /* Crisp white cards */
   --card: 0 0% 100%;
-  --card-foreground: 20 14% 16%;
+  --card-foreground: 25 15% 15%;
   
   --popover: 0 0% 100%;
-  --popover-foreground: 20 14% 16%;
+  --popover-foreground: 25 15% 15%;
   
-  /* Fresh vibrant green */
-  --primary: 142 71% 36%;
+  /* Soft sage green */
+  --primary: 142 35% 45%;
   --primary-foreground: 0 0% 100%;
   
-  /* Appetizing warm orange */
-  --secondary: 24 95% 53%;
+  /* Warm peach/apricot */
+  --secondary: 25 80% 65%;
   --secondary-foreground: 0 0% 100%;
   
-  --muted: 40 20% 92%;
-  --muted-foreground: 25 10% 45%;
+  --muted: 45 20% 94%;
+  --muted-foreground: 25 10% 50%;
   
-  /* Soft yellow-green accent */
-  --accent: 75 60% 90%;
-  --accent-foreground: 142 71% 25%;
+  --accent: 25 80% 65%;
+  --accent-foreground: 0 0% 100%;
   
-  /* Bright coral for destructive actions */
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   
-  --border: 40 20% 88%;
-  --input: 40 20% 88%;
-  --ring: 142 71% 36%;
+  --border: 45 15% 88%;
+  --input: 45 15% 88%;
+  --ring: 142 35% 45%;
   
-  --radius: 1rem;
+  --radius: 1.5rem;
 }
 
 .dark {
-  --background: 20 14% 10%;
-  --foreground: 40 33% 98%;
-  --card: 20 14% 14%;
-  --card-foreground: 40 33% 98%;
-  --popover: 20 14% 14%;
-  --popover-foreground: 40 33% 98%;
-  --primary: 142 60% 45%;
-  --primary-foreground: 20 14% 10%;
-  --secondary: 24 90% 55%;
-  --secondary-foreground: 20 14% 10%;
-  --muted: 20 14% 20%;
-  --muted-foreground: 40 20% 70%;
-  --accent: 75 30% 20%;
-  --accent-foreground: 75 60% 90%;
+  --background: 25 15% 10%;
+  --foreground: 45 30% 97%;
+  --card: 25 15% 12%;
+  --card-foreground: 45 30% 97%;
+  --popover: 25 15% 12%;
+  --popover-foreground: 45 30% 97%;
+  --primary: 142 35% 45%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 25 70% 55%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 25 15% 20%;
+  --muted-foreground: 45 20% 60%;
+  --accent: 25 70% 55%;
+  --accent-foreground: 0 0% 100%;
   --destructive: 0 60% 50%;
   --destructive-foreground: 0 0% 100%;
-  --border: 20 14% 24%;
-  --input: 20 14% 24%;
-  --ring: 142 60% 45%;
+  --border: 25 15% 20%;
+  --input: 25 15% 20%;
+  --ring: 142 35% 45%;
 }
 
 @layer base {
@@ -105,10 +100,6 @@
   }
   body {
     @apply bg-background text-foreground antialiased font-sans selection:bg-primary/20 selection:text-primary;
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(142, 71%, 36%, 0.03) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(24, 95%, 53%, 0.03) 0px, transparent 50%);
-    background-attachment: fixed;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -134,7 +125,7 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-xl shadow-black/[0.02];
+    @apply bg-card border border-border shadow-sm;
   }
 }
 

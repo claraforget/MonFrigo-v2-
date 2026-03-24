@@ -28,7 +28,7 @@ function MultiSelectChip({
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-3">
       {options.map(opt => {
         const isSelected = selected.includes(opt);
         return (
@@ -37,10 +37,10 @@ function MultiSelectChip({
             type="button"
             onClick={() => toggle(opt)}
             className={cn(
-              "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border",
+              "px-5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200",
               isSelected 
-                ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20 scale-105" 
-                : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:bg-primary/5"
+                ? "bg-accent/20 text-accent-foreground border-transparent" 
+                : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
             )}
           >
             {opt}
@@ -87,75 +87,74 @@ export default function PreferencesPage() {
     saveMutation.mutate({ data: formData });
   };
 
-  if (isLoading) return <div className="p-8 text-center animate-pulse">Chargement des préférences...</div>;
+  if (isLoading) return <div className="p-10 text-center animate-pulse text-lg text-muted-foreground">Chargement des préférences...</div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-10 pb-12 pt-4">
       <div>
-        <h1 className="text-4xl font-display font-bold text-foreground flex items-center gap-3">
-          <ChefHat className="w-10 h-10 text-secondary" />
+        <h1 className="text-4xl font-display font-bold text-foreground">
           Vos Préférences
         </h1>
-        <p className="text-lg text-muted-foreground mt-2">
+        <p className="text-lg text-muted-foreground mt-3">
           L'IA utilisera ces informations pour générer un menu parfaitement adapté à votre foyer.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4 text-primary">
-              <Clock className="w-6 h-6" />
-              <h3 className="font-semibold text-lg text-foreground">Temps (min/jour)</h3>
+          <Card className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="p-4 bg-primary/10 rounded-2xl">
+              <Clock className="w-8 h-8 text-primary" />
             </div>
-            <div className="flex items-end gap-4">
-              <Input 
-                type="number" 
-                min="15" max="180" step="5"
-                className="text-2xl font-display font-bold py-4"
-                value={formData.cookingTimePerDay}
-                onChange={e => setFormData({...formData, cookingTimePerDay: parseInt(e.target.value) || 0})}
-              />
-            </div>
+            <h3 className="font-medium text-muted-foreground">Temps (min/jour)</h3>
+            <Input 
+              type="number" 
+              min="15" max="180" step="5"
+              className="text-4xl font-display font-bold text-center h-20 bg-transparent border-none focus-visible:ring-0 shadow-none p-0"
+              value={formData.cookingTimePerDay}
+              onChange={e => setFormData({...formData, cookingTimePerDay: parseInt(e.target.value) || 0})}
+            />
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4 text-emerald-500">
-              <Wallet className="w-6 h-6" />
-              <h3 className="font-semibold text-lg text-foreground">Budget Hebdo</h3>
+          <Card className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="p-4 bg-emerald-500/10 rounded-2xl">
+              <Wallet className="w-8 h-8 text-emerald-600" />
             </div>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-muted-foreground">$</span>
+            <h3 className="font-medium text-muted-foreground">Budget Hebdo</h3>
+            <div className="relative flex items-center justify-center w-full">
               <Input 
                 type="number" 
                 min="0" step="10"
-                className="text-2xl font-display font-bold py-4 pl-10"
+                className="text-4xl font-display font-bold text-center h-20 bg-transparent border-none focus-visible:ring-0 shadow-none p-0 w-32"
                 value={formData.weeklyBudget}
                 onChange={e => setFormData({...formData, weeklyBudget: parseInt(e.target.value) || 0})}
               />
+              <span className="text-2xl font-bold text-muted-foreground absolute right-4">$</span>
             </div>
           </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4 text-secondary">
-              <Users className="w-6 h-6" />
-              <h3 className="font-semibold text-lg text-foreground">Personnes</h3>
+          <Card className="p-8 flex flex-col items-center justify-center text-center space-y-4">
+            <div className="p-4 bg-secondary/10 rounded-2xl">
+              <Users className="w-8 h-8 text-secondary" />
             </div>
+            <h3 className="font-medium text-muted-foreground">Personnes</h3>
             <Input 
               type="number" 
               min="1" max="10"
-              className="text-2xl font-display font-bold py-4"
+              className="text-4xl font-display font-bold text-center h-20 bg-transparent border-none focus-visible:ring-0 shadow-none p-0"
               value={formData.numberOfPeople}
               onChange={e => setFormData({...formData, numberOfPeople: parseInt(e.target.value) || 1})}
             />
           </Card>
         </div>
 
-        <Card className="p-8 space-y-8">
+        <Card className="p-10 space-y-10">
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Flame className="w-5 h-5 text-destructive" />
-              <h3 className="text-xl font-bold">Allergies & Intolérances</h3>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-destructive/10 rounded-xl">
+                <Flame className="w-5 h-5 text-destructive" />
+              </div>
+              <h3 className="text-xl font-display font-bold">Allergies & Intolérances</h3>
             </div>
             <MultiSelectChip 
               options={ALLERGIES} 
@@ -164,12 +163,14 @@ export default function PreferencesPage() {
             />
           </div>
 
-          <hr className="border-border/50" />
+          <div className="h-px bg-border/40 w-full" />
 
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Leaf className="w-5 h-5 text-primary" />
-              <h3 className="text-xl font-bold">Régimes alimentaires</h3>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-primary/10 rounded-xl">
+                <Leaf className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="text-xl font-display font-bold">Régimes alimentaires</h3>
             </div>
             <MultiSelectChip 
               options={DIETS} 
@@ -178,12 +179,14 @@ export default function PreferencesPage() {
             />
           </div>
 
-          <hr className="border-border/50" />
+          <div className="h-px bg-border/40 w-full" />
 
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <ChefHat className="w-5 h-5 text-amber-500" />
-              <h3 className="text-xl font-bold">Styles de cuisine préférés</h3>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-amber-500/10 rounded-xl">
+                <ChefHat className="w-5 h-5 text-amber-500" />
+              </div>
+              <h3 className="text-xl font-display font-bold">Styles de cuisine préférés</h3>
             </div>
             <MultiSelectChip 
               options={CUISINES} 
@@ -193,9 +196,9 @@ export default function PreferencesPage() {
           </div>
         </Card>
 
-        <div className="flex justify-end pt-4 sticky bottom-6 z-10 no-print">
+        <div className="flex justify-end pt-6 sticky bottom-24 lg:bottom-6 z-10 no-print">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-            <Button size="lg" type="submit" disabled={saveMutation.isPending} className="shadow-2xl shadow-primary/30">
+            <Button size="lg" type="submit" disabled={saveMutation.isPending} className="shadow-lg">
               {saveMutation.isPending ? "Enregistrement..." : (
                 <>
                   <Check className="w-5 h-5 mr-2" />
