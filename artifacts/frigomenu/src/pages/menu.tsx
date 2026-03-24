@@ -1,8 +1,9 @@
 import { useGetCurrentMenu, useGenerateMenu } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Printer, CalendarDays, Clock, DollarSign, ChevronDown, CheckCircle2 } from "lucide-react";
+import { Sparkles, Printer, Clock, DollarSign, ChevronDown, CheckCircle2 } from "lucide-react";
 import { useState, useCallback } from "react";
+import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Meal } from "@workspace/api-client-react/src/generated/api.schemas";
 
@@ -82,7 +83,6 @@ function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Mea
 export default function MenuPage() {
   const { data, isLoading } = useGetCurrentMenu();
   const queryClient = useQueryClient();
-  const [isPrinting, setIsPrinting] = useState(false);
   const generateMutation = useGenerateMenu({
     mutation: {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] })
@@ -90,13 +90,119 @@ export default function MenuPage() {
   });
 
   const handlePrint = useCallback(() => {
-    setIsPrinting(true);
-    // Wait for React to re-render with all cards open + animation to finish
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 350);
-  }, []);
+    if (!data?.menu) return;
+    const menu = data.menu;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 15;
+    const contentW = pageW - margin * 2;
+    let y = 20;
+
+    const checkPage = (needed: number) => {
+      if (y + needed > 275) { doc.addPage(); y = 15; }
+    };
+
+    // Title
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(74, 139, 84);
+    doc.text("FrigoMenu — Menu de la semaine", margin, y);
+    y += 8;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(120, 120, 120);
+    const dateStr = new Date(menu.generatedAt).toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" });
+    doc.text(`Généré le ${dateStr}  •  Coût estimé : ${menu.estimatedCost} $`, margin, y);
+    y += 10;
+
+    // Divider
+    doc.setDrawColor(220, 220, 210);
+    doc.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    const mealTitles: Record<string, string> = { breakfast: "Déjeuner", lunch: "Dîner", dinner: "Souper" };
+
+    for (const day of menu.days) {
+      checkPage(18);
+      // Day header
+      doc.setFillColor(237, 247, 239);
+      doc.roundedRect(margin, y, contentW, 10, 2, 2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(74, 139, 84);
+      doc.text(day.dayName, margin + 4, y + 7);
+      y += 14;
+
+      for (const [key, label] of Object.entries(mealTitles)) {
+        const meal = day[key as keyof typeof day] as Meal;
+        checkPage(30);
+
+        // Meal name row
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(10);
+        doc.setTextColor(60, 60, 60);
+        doc.text(`${label} — ${meal.name}`, margin + 2, y);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`${meal.cookingTime} min`, pageW - margin - 2, y, { align: "right" });
+        y += 5;
+
+        // Description
+        if (meal.description) {
+          doc.setFont("helvetica", "italic");
+          doc.setFontSize(8);
+          doc.setTextColor(120, 120, 120);
+          const descLines = doc.splitTextToSize(meal.description, contentW - 4);
+          checkPage(descLines.length * 4 + 2);
+          doc.text(descLines, margin + 2, y);
+          y += descLines.length * 4 + 2;
+        }
+
+        // Ingredients
+        checkPage(12);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Ingrédients :", margin + 2, y);
+        y += 4;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        for (const ing of meal.ingredients) {
+          checkPage(5);
+          doc.text(`• ${ing}`, margin + 5, y);
+          y += 4;
+        }
+
+        // Instructions
+        checkPage(12);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text("Instructions :", margin + 2, y);
+        y += 4;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(80, 80, 80);
+        meal.instructions.forEach((inst, i) => {
+          const lines = doc.splitTextToSize(`${i + 1}. ${inst}`, contentW - 7);
+          checkPage(lines.length * 4 + 2);
+          doc.text(lines, margin + 5, y);
+          y += lines.length * 4 + 2;
+        });
+
+        y += 3;
+        doc.setDrawColor(235, 235, 228);
+        doc.line(margin + 4, y, pageW - margin - 4, y);
+        y += 5;
+      }
+      y += 4;
+    }
+
+    doc.save("frigomenu-semaine.pdf");
+  }, [data]);
 
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -181,9 +287,9 @@ export default function MenuPage() {
                 <h2 className="text-2xl font-display font-bold text-primary">{day.dayName}</h2>
               </div>
               <div className="p-5 sm:p-8 space-y-4 bg-card">
-                <MealCard title="Déjeuner" meal={day.breakfast} forceOpen={isPrinting} />
-                <MealCard title="Dîner" meal={day.lunch} forceOpen={isPrinting} />
-                <MealCard title="Souper" meal={day.dinner} forceOpen={isPrinting} />
+                <MealCard title="Déjeuner" meal={day.breakfast} />
+                <MealCard title="Dîner" meal={day.lunch} />
+                <MealCard title="Souper" meal={day.dinner} />
               </div>
             </Card>
           ))}
