@@ -14,7 +14,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 };
 
 const CATEGORIES = ["Légumes", "Fruits", "Viandes", "Produits laitiers", "Féculents", "Épices", "Autres"];
-const UNITS = ["g", "kg", "ml", "L", "pcs", "tasse", "c.à.s", "c.à.c"];
+const UNITS = ["unité", "g", "kg", "ml", "L", "tasse", "c.à.s", "c.à.c"];
 
 export default function FridgePage() {
   const { data: ingredients, isLoading } = useGetFridgeIngredients();
@@ -177,7 +177,7 @@ export default function FridgePage() {
                     <button 
                       onClick={() => deleteMutation.mutate({ id: item.id })}
                       disabled={deleteMutation.isPending}
-                      className="p-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-2.5 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
