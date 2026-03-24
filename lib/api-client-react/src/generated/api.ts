@@ -767,6 +767,84 @@ export function useGetCurrentMenu<
 }
 
 /**
+ * @summary Delete the current menu
+ */
+export const getDeleteCurrentMenuUrl = () => {
+  return `/api/menu/current`;
+};
+
+export const deleteCurrentMenu = async (
+  options?: RequestInit,
+): Promise<DeleteResult> => {
+  return customFetch<DeleteResult>(getDeleteCurrentMenuUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCurrentMenuMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCurrentMenu>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCurrentMenu>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteCurrentMenu"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCurrentMenu>>,
+    void
+  > = () => {
+    return deleteCurrentMenu(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCurrentMenuMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCurrentMenu>>
+>;
+
+export type DeleteCurrentMenuMutationError = ErrorType<unknown>;
+
+export const useDeleteCurrentMenu = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCurrentMenu>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCurrentMenu>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteCurrentMenuMutationOptions(options));
+};
+
+/**
  * @summary Get the shopping list for the current menu
  */
 export const getGetShoppingListUrl = () => {

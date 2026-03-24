@@ -1,7 +1,7 @@
-import { useGetCurrentMenu, useGenerateMenu } from "@workspace/api-client-react";
+import { useGetCurrentMenu, useGenerateMenu, useDeleteCurrentMenu } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Printer, Clock, DollarSign, ChevronDown, CheckCircle2 } from "lucide-react";
+import { Sparkles, Printer, Clock, DollarSign, ChevronDown, CheckCircle2, Trash2 } from "lucide-react";
 import { useState, useCallback } from "react";
 import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
@@ -84,6 +84,12 @@ export default function MenuPage() {
   const { data, isLoading } = useGetCurrentMenu();
   const queryClient = useQueryClient();
   const generateMutation = useGenerateMenu({
+    mutation: {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] })
+    }
+  });
+
+  const deleteMutation = useDeleteCurrentMenu({
     mutation: {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] })
     }
@@ -232,10 +238,25 @@ export default function MenuPage() {
         
         <div className="flex flex-wrap gap-3">
           {hasMenu && (
-            <Button variant="outline" onClick={handlePrint} className="bg-card">
-              <Printer className="w-5 h-5 mr-2" />
-              Télécharger PDF
-            </Button>
+            <>
+              <Button variant="outline" onClick={handlePrint} className="bg-card">
+                <Printer className="w-5 h-5 mr-2" />
+                Télécharger PDF
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (confirm("Supprimer le menu en cours ?")) {
+                    deleteMutation.mutate();
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                className="bg-card text-destructive hover:bg-destructive/10 hover:border-destructive/40 border-destructive/20"
+              >
+                <Trash2 className="w-5 h-5 mr-2" />
+                {deleteMutation.isPending ? "Suppression..." : "Supprimer"}
+              </Button>
+            </>
           )}
           <Button 
             onClick={() => generateMutation.mutate()} 

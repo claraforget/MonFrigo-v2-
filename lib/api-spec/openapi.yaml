@@ -161,6 +161,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WeeklyMenuOrNull"
+    delete:
+      operationId: deleteCurrentMenu
+      tags: [menu]
+      summary: Delete the current menu
+      responses:
+        "200":
+          description: Menu deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteResult"
 
   /menu/shopping-list:
     get:

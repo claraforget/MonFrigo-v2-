@@ -6,7 +6,7 @@ import {
   GetCurrentMenuResponse,
   GetShoppingListResponse,
 } from "@workspace/api-zod";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -142,6 +142,22 @@ router.get("/menu/current", async (req, res): Promise<void> => {
       generatedAt: menu.generatedAt.toISOString(),
     },
   }));
+});
+
+router.delete("/menu/current", async (req, res): Promise<void> => {
+  const [latest] = await db
+    .select()
+    .from(weeklyMenusTable)
+    .orderBy(desc(weeklyMenusTable.generatedAt))
+    .limit(1);
+
+  if (!latest) {
+    res.status(404).json({ error: "Aucun menu à supprimer" });
+    return;
+  }
+
+  await db.delete(weeklyMenusTable).where(eq(weeklyMenusTable.id, latest.id));
+  res.json({ success: true });
 });
 
 router.get("/menu/shopping-list", async (req, res): Promise<void> => {
