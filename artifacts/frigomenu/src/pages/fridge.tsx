@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useGetFridgeIngredients, useAddFridgeIngredient, useDeleteFridgeIngredient } from "@workspace/api-client-react";
-import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, SearchX } from "lucide-react";
+import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, SearchX, Package } from "lucide-react";
 import { Button, Input, Select, Label, Card, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -178,7 +178,7 @@ export default function FridgePage() {
               >
                 <Card className="p-5 group hover:border-primary/30 transition-all flex flex-col h-full relative overflow-hidden">
                   <div className="absolute -right-4 -top-4 opacity-5 pointer-events-none transition-transform group-hover:scale-110">
-                    {CATEGORY_ICONS[item.category] || <Refrigerator className="w-32 h-32" />}
+                    {CATEGORY_ICONS[item.category] || <Package className="w-32 h-32" />}
                   </div>
                   
                   <div className="flex justify-between items-start mb-4 relative z-10">
