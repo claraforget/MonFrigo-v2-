@@ -2,12 +2,13 @@ import { useGetCurrentMenu, useGenerateMenu } from "@workspace/api-client-react"
 import { Card, Button, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles, Printer, CalendarDays, Clock, DollarSign, ChevronDown, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Meal } from "@workspace/api-client-react/src/generated/api.schemas";
 
-function MealCard({ title, meal }: { title: string, meal: Meal }) {
+function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal, forceOpen?: boolean }) {
   const [expanded, setExpanded] = useState(false);
+  const isOpen = expanded || forceOpen;
 
   return (
     <div className="border border-border/40 rounded-2xl overflow-hidden bg-card hover:border-border/80 transition-all print-break-inside-avoid">
@@ -23,18 +24,20 @@ function MealCard({ title, meal }: { title: string, meal: Meal }) {
           <Badge variant="outline" className="hidden sm:flex whitespace-nowrap bg-background/50 border-none">
             <Clock className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> {meal.cookingTime} min
           </Badge>
-          <div className={`p-1.5 rounded-full transition-colors ${expanded ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground'}`}>
-            <ChevronDown className={`w-4 h-4 transition-transform duration-300 no-print ${expanded ? "rotate-180" : ""}`} />
+          <div className={`p-1.5 rounded-full transition-colors no-print ${isOpen ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground'}`}>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
           </div>
         </div>
       </button>
       
-      <AnimatePresence>
-        {(expanded || window.matchMedia("print").matches) && ( // Force open in print
+      <AnimatePresence initial={false}>
+        {isOpen && (
           <motion.div
+            key="content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
             <div className="p-5 pt-0 border-t border-border/20 bg-background/30">
@@ -79,15 +82,21 @@ function MealCard({ title, meal }: { title: string, meal: Meal }) {
 export default function MenuPage() {
   const { data, isLoading } = useGetCurrentMenu();
   const queryClient = useQueryClient();
+  const [isPrinting, setIsPrinting] = useState(false);
   const generateMutation = useGenerateMenu({
     mutation: {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] })
     }
   });
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const handlePrint = useCallback(() => {
+    setIsPrinting(true);
+    // Wait for React to re-render with all cards open + animation to finish
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 350);
+  }, []);
 
   if (isLoading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -172,9 +181,9 @@ export default function MenuPage() {
                 <h2 className="text-2xl font-display font-bold text-primary">{day.dayName}</h2>
               </div>
               <div className="p-5 sm:p-8 space-y-4 bg-card">
-                <MealCard title="Déjeuner" meal={day.breakfast} />
-                <MealCard title="Dîner" meal={day.lunch} />
-                <MealCard title="Souper" meal={day.dinner} />
+                <MealCard title="Déjeuner" meal={day.breakfast} forceOpen={isPrinting} />
+                <MealCard title="Dîner" meal={day.lunch} forceOpen={isPrinting} />
+                <MealCard title="Souper" meal={day.dinner} forceOpen={isPrinting} />
               </div>
             </Card>
           ))}
