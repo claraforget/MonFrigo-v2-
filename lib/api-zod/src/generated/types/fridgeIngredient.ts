@@ -12,6 +12,7 @@ export interface FridgeIngredient {
   quantity: string;
   unit: string;
   category: string;
+  conservationType: string;
   expiryDate?: string | null;
   createdAt: string;
 }

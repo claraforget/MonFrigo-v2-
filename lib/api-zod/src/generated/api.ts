@@ -24,6 +24,7 @@ export const GetFridgeIngredientsResponseItem = zod.object({
   quantity: zod.string(),
   unit: zod.string(),
   category: zod.string(),
+  conservationType: zod.string(),
   expiryDate: zod.string().nullish(),
   createdAt: zod.string(),
 });
@@ -39,6 +40,7 @@ export const AddFridgeIngredientBody = zod.object({
   quantity: zod.string(),
   unit: zod.string(),
   category: zod.string(),
+  conservationType: zod.string().optional().default("frais"),
   expiryDate: zod.string().nullish(),
 });
 
@@ -54,6 +56,7 @@ export const UpdateFridgeIngredientBody = zod.object({
   quantity: zod.string().optional(),
   unit: zod.string().optional(),
   category: zod.string().optional(),
+  conservationType: zod.string().optional(),
   expiryDate: zod.string().nullish(),
 });
 
@@ -63,6 +66,7 @@ export const UpdateFridgeIngredientResponse = zod.object({
   quantity: zod.string(),
   unit: zod.string(),
   category: zod.string(),
+  conservationType: zod.string(),
   expiryDate: zod.string().nullish(),
   createdAt: zod.string(),
 });

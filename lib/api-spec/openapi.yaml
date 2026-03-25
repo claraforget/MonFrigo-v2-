@@ -237,6 +237,8 @@ components:
           type: string
         category:
           type: string
+        conservationType:
+          type: string
         expiryDate:
           type: string
           nullable: true
@@ -248,6 +250,7 @@ components:
         - quantity
         - unit
         - category
+        - conservationType
         - createdAt
 
     CreateFridgeIngredient:
@@ -260,6 +263,8 @@ components:
         unit:
           type: string
         category:
+          type: string
+        conservationType:
           type: string
         expiryDate:
           type: string
@@ -280,6 +285,8 @@ components:
         unit:
           type: string
         category:
+          type: string
+        conservationType:
           type: string
         expiryDate:
           type: string

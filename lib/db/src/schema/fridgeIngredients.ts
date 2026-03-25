@@ -8,6 +8,7 @@ export const fridgeIngredientsTable = pgTable("fridge_ingredients", {
   quantity: text("quantity").notNull(),
   unit: text("unit").notNull(),
   category: text("category").notNull(),
+  conservationType: text("conservation_type").notNull().default("frais"),
   expiryDate: text("expiry_date"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

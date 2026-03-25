@@ -11,5 +11,6 @@ export interface CreateFridgeIngredient {
   quantity: string;
   unit: string;
   category: string;
+  conservationType?: string;
   expiryDate?: string | null;
 }
