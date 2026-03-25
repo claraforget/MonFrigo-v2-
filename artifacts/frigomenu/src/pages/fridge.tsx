@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useGetFridgeIngredients, useAddFridgeIngredient, useDeleteFridgeIngredient } from "@workspace/api-client-react";
 import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, Package } from "lucide-react";
 import { Button, Input, Select, Label, Card, Badge } from "@/components/ui-elements";
@@ -22,6 +22,7 @@ export default function FridgePage() {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("Tous");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const addMutation = useAddFridgeIngredient({
     mutation: {
@@ -82,6 +83,7 @@ export default function FridgePage() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
+            onAnimationComplete={() => nameInputRef.current?.focus()}
           >
             <Card className="p-8 mb-6 bg-primary/5 border-primary/10 shadow-none">
               <h3 className="text-xl font-bold mb-6 text-foreground">Nouvel ingrédient</h3>
@@ -102,7 +104,7 @@ export default function FridgePage() {
               >
                 <div className="space-y-2 lg:col-span-2">
                   <Label>Nom</Label>
-                  <Input name="name" required placeholder="ex: Tomates" autoFocus className="bg-white" />
+                  <Input ref={nameInputRef} name="name" required placeholder="ex: Tomates" className="bg-white" />
                 </div>
                 <div className="space-y-2 lg:col-span-1">
                   <Label>Quantité</Label>
