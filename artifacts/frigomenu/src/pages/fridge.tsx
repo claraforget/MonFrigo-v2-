@@ -1,138 +1,190 @@
 import { useState, useRef, useEffect } from "react";
 import { useGetFridgeIngredients, useAddFridgeIngredient, useDeleteFridgeIngredient } from "@workspace/api-client-react";
-import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, Package, Snowflake, Flame, Archive, Leaf, X } from "lucide-react";
+import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, Package, X } from "lucide-react";
 import { Button, Input, Select, Label, Card, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 
-// ─── Icônes ──────────────────────────────────────────────────────────────────
+// ─── Icônes ───────────────────────────────────────────────────────────────────
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "Légumes": <Carrot className="w-6 h-6 text-emerald-500" />,
-  "Fruits": <Apple className="w-6 h-6 text-red-500" />,
-  "Viandes": <Beef className="w-6 h-6 text-rose-600" />,
-  "Produits laitiers": <Milk className="w-6 h-6 text-blue-400" />,
-  "Féculents": <Wheat className="w-6 h-6 text-amber-500" />,
-};
-
-const CONSERVATION_ICONS: Record<string, React.ReactNode> = {
-  "frais":       <Leaf    className="w-3.5 h-3.5" />,
-  "surgelé":     <Snowflake className="w-3.5 h-3.5" />,
-  "en conserve": <Archive className="w-3.5 h-3.5" />,
-  "séché":       <Flame   className="w-3.5 h-3.5" />,
-  "cuit":        <Flame   className="w-3.5 h-3.5" />,
-};
-
-const CONSERVATION_COLORS: Record<string, string> = {
-  "frais":       "bg-green-100 text-green-700 border-green-200",
-  "surgelé":     "bg-blue-100 text-blue-700 border-blue-200",
-  "en conserve": "bg-amber-100 text-amber-700 border-amber-200",
-  "séché":       "bg-orange-100 text-orange-700 border-orange-200",
-  "cuit":        "bg-red-100 text-red-700 border-red-200",
+  "Légumes":          <Carrot className="w-6 h-6 text-emerald-500" />,
+  "Fruits":           <Apple  className="w-6 h-6 text-red-500" />,
+  "Viandes":          <Beef   className="w-6 h-6 text-rose-600" />,
+  "Produits laitiers":<Milk   className="w-6 h-6 text-blue-400" />,
+  "Féculents":        <Wheat  className="w-6 h-6 text-amber-500" />,
 };
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const CONSERVATION_TYPES = ["frais", "surgelé", "en conserve", "séché", "cuit"];
 const CATEGORIES = ["Légumes", "Fruits", "Viandes", "Produits laitiers", "Féculents", "Épices", "Autres"];
 const UNITS = ["unité", "g", "kg", "ml", "L", "tasse", "c.à.s", "c.à.c"];
 
 // ─── Base d'ingrédients pour l'autocomplétion ─────────────────────────────────
 
 const INGREDIENT_SUGGESTIONS: string[] = [
-  // Viandes & volailles
+  // ── Viandes & volailles ──
   "Poulet entier", "Poitrine de poulet", "Cuisse de poulet", "Pilon de poulet",
   "Poulet haché", "Ailes de poulet", "Filet de poulet",
-  "Bœuf haché", "Bifteck de bœuf", "Rôti de bœuf", "Côte de bœuf",
-  "Porc haché", "Côtelette de porc", "Rôti de porc", "Filet de porc", "Bacon",
-  "Veau haché", "Côtelette de veau",
-  "Dinde entière", "Poitrine de dinde", "Dinde hachée",
-  "Saucisse italienne", "Saucisse de Francfort", "Merguez",
-  "Jambon cuit", "Jambon fumé", "Prosciutto",
-  "Agneau haché", "Gigot d'agneau",
-  // Poissons & fruits de mer
-  "Saumon frais", "Saumon fumé", "Filet de saumon",
-  "Thon en conserve", "Thon frais",
-  "Crevettes", "Pétoncles", "Homard", "Crabe",
-  "Tilapia", "Morue", "Doré", "Truite",
-  "Moules", "Palourdes",
-  // Légumes
-  "Tomate", "Tomates cerises", "Tomates en dés", "Tomates broyées",
-  "Carotte", "Carottes miniatures",
-  "Oignon jaune", "Oignon rouge", "Oignon vert", "Échalote",
-  "Ail", "Ail en poudre",
-  "Poivron rouge", "Poivron vert", "Poivron jaune",
-  "Brocoli", "Chou-fleur", "Chou vert", "Chou rouge", "Chou kale",
-  "Épinards", "Roquette", "Laitue romaine", "Laitue Boston", "Mâche",
-  "Concombre", "Zucchini", "Courgette",
-  "Céleri", "Poireau", "Fenouil",
-  "Aubergine", "Radis", "Betterave",
-  "Champignon blanc", "Champignon portobello", "Shiitake",
-  "Pomme de terre", "Patate douce", "Pomme de terre grelot",
-  "Maïs", "Maïs en conserve", "Haricots verts",
-  "Pois verts", "Petits pois", "Asperges",
-  "Artichaut", "Endive", "Panais", "Navet",
-  // Fruits
-  "Pomme", "Pomme Fuji", "Pomme Gala", "Pomme Granny Smith",
-  "Banane", "Orange", "Citron", "Lime", "Pamplemousse",
-  "Fraise", "Bleuet", "Framboise", "Mûre", "Canneberge",
-  "Raisin rouge", "Raisin vert",
-  "Pêche", "Nectarine", "Prune", "Abricot",
-  "Poire", "Mangue", "Ananas", "Kiwi",
-  "Melon", "Pastèque", "Grenade", "Figue",
-  "Cerise", "Avocat",
-  // Produits laitiers & œufs
-  "Lait entier", "Lait 2%", "Lait écrémé", "Lait d'amande", "Lait de soya",
-  "Beurre", "Beurre salé", "Beurre non salé",
+  "Poitrine de poulet surgelée", "Cuisse de poulet surgelée", "Ailes de poulet surgelées",
+  "Bœuf haché", "Bœuf haché extra-maigre", "Bifteck de bœuf", "Rôti de bœuf",
+  "Côte de bœuf", "Bœuf à ragoût", "Bœuf en cubes surgelé",
+  "Porc haché", "Côtelette de porc", "Rôti de porc", "Filet de porc",
+  "Bacon", "Bacon de dinde",
+  "Veau haché", "Côtelette de veau", "Escalope de veau",
+  "Dinde entière", "Poitrine de dinde", "Dinde hachée", "Dinde surgelée",
+  "Saucisse italienne", "Saucisse de Francfort", "Saucisse de porc", "Merguez",
+  "Jambon cuit", "Jambon fumé", "Prosciutto", "Pepperoni",
+  "Agneau haché", "Gigot d'agneau", "Côtelette d'agneau",
+  // ── Poissons & fruits de mer ──
+  "Saumon frais", "Saumon fumé", "Filet de saumon", "Saumon surgelé",
+  "Thon en conserve", "Thon en conserve dans l'eau", "Thon en conserve dans l'huile", "Thon frais",
+  "Crevettes fraîches", "Crevettes surgelées", "Crevettes décortiquées",
+  "Pétoncles frais", "Pétoncles surgelés",
+  "Homard frais", "Homard en conserve", "Queue de homard surgelée",
+  "Crabe en conserve", "Pattes de crabe surgelées",
+  "Tilapia frais", "Tilapia surgelé", "Filet de tilapia",
+  "Morue fraîche", "Morue salée", "Morue surgelée",
+  "Doré frais", "Doré surgelé",
+  "Truite fraîche", "Truite fumée", "Truite surgelée",
+  "Moules fraîches", "Moules surgelées",
+  "Palourdes en conserve",
+  "Sardines en conserve",
+  "Maquereau en conserve",
+  // ── Légumes frais ──
+  "Tomate", "Tomates cerises", "Tomates raisins", "Tomate beefsteak",
+  "Tomates en dés en conserve", "Tomates broyées en conserve", "Tomates entières en conserve",
+  "Tomates séchées", "Tomates séchées dans l'huile",
+  "Carotte", "Carottes miniatures", "Carottes surgelées", "Carottes en dés",
+  "Oignon jaune", "Oignon rouge", "Oignon vert", "Échalote", "Oignons caramélisés",
+  "Ail frais", "Ail en poudre", "Ail haché en pot", "Ail rôti",
+  "Poivron rouge", "Poivron vert", "Poivron jaune", "Poivron orange",
+  "Poivrons rôtis en conserve", "Poivrons surgelés",
+  "Brocoli frais", "Brocoli surgelé", "Fleurons de brocoli",
+  "Chou-fleur frais", "Chou-fleur surgelé", "Chou-fleur rôti",
+  "Chou vert", "Chou rouge", "Chou frisé (kale)", "Chou de Bruxelles frais", "Chou de Bruxelles surgelé",
+  "Épinards frais", "Épinards surgelés", "Épinards en conserve",
+  "Roquette", "Laitue romaine", "Laitue Boston", "Laitue frisée", "Mâche", "Mesclun",
+  "Concombre", "Concombre libanais", "Concombre anglais",
+  "Zucchini", "Courgette jaune", "Zucchini surgelé",
+  "Céleri", "Céleri-rave",
+  "Poireau", "Fenouil",
+  "Aubergine", "Aubergine grillée en conserve",
+  "Radis", "Betterave fraîche", "Betterave cuite sous vide", "Betterave en conserve",
+  "Champignon blanc", "Champignon cremini", "Champignon portobello", "Shiitake",
+  "Champignons en conserve", "Champignons séchés",
+  "Pomme de terre", "Pomme de terre grelot", "Pomme de terre Russet",
+  "Patate douce", "Patate douce surgelée",
+  "Maïs en épi", "Maïs en grains surgelé", "Maïs en conserve",
+  "Haricots verts frais", "Haricots verts surgelés", "Haricots verts en conserve",
+  "Pois verts frais", "Petits pois surgelés", "Petits pois en conserve",
+  "Asperges fraîches", "Asperges surgelées", "Asperges en conserve",
+  "Artichaut", "Cœurs d'artichaut en conserve",
+  "Endive", "Panais", "Navet", "Rutabaga",
+  // ── Fruits frais ──
+  "Pomme Fuji", "Pomme Gala", "Pomme Granny Smith", "Pomme Cortland", "Pomme Honeycrisp",
+  "Pommes séchées", "Compote de pommes",
+  "Banane", "Banane séchée", "Banane plantain",
+  "Orange", "Clémentine", "Mandarine", "Pamplemousse",
+  "Citron", "Citron Meyer", "Jus de citron",
+  "Lime", "Jus de lime",
+  "Fraise fraîche", "Fraises surgelées", "Fraises séchées",
+  "Bleuet frais", "Bleuets surgelés", "Bleuets séchés",
+  "Framboise fraîche", "Framboises surgelées", "Framboises séchées",
+  "Mûre fraîche", "Mûres surgelées",
+  "Canneberge fraîche", "Canneberges surgelées", "Canneberges séchées",
+  "Raisin rouge", "Raisin vert", "Raisins secs",
+  "Pêche fraîche", "Pêches surgelées", "Pêches en conserve", "Pêches séchées",
+  "Nectarine",
+  "Prune fraîche", "Pruneaux séchés",
+  "Abricot frais", "Abricots séchés", "Abricots en conserve",
+  "Poire fraîche", "Poires en conserve", "Poires séchées",
+  "Mangue fraîche", "Mangues surgelées", "Mangues séchées", "Purée de mangue",
+  "Ananas frais", "Ananas en conserve", "Ananas surgelé", "Ananas séché",
+  "Kiwi", "Kiwi séché",
+  "Melon cantaloup", "Melon miel", "Pastèque",
+  "Cerise fraîche", "Cerises surgelées", "Cerises en conserve", "Cerises séchées",
+  "Avocat",
+  "Grenade", "Arilles de grenade", "Jus de grenade",
+  "Figue fraîche", "Figues séchées",
+  "Papaye fraîche", "Papaye séchée",
+  "Goyave", "Litchi", "Fruit du dragon",
+  "Noix de coco râpée", "Lait de coco", "Lait de coco léger", "Crème de coco",
+  // ── Produits laitiers & œufs ──
+  "Lait entier", "Lait 2%", "Lait écrémé",
+  "Lait d'amande", "Lait de soya", "Lait d'avoine", "Lait de coco (boisson)",
+  "Beurre salé", "Beurre non salé", "Beurre d'arachide", "Beurre de cajou", "Beurre d'amande",
   "Crème 35%", "Crème 15%", "Crème sure", "Crème fraîche",
-  "Yogourt nature", "Yogourt grec", "Yogourt à la vanille",
-  "Fromage cheddar", "Fromage mozzarella", "Fromage parmesan",
-  "Fromage ricotta", "Fromage cottage", "Fromage feta",
-  "Fromage brie", "Fromage camembert", "Fromage gruyère",
-  "Œufs", "Blancs d'œufs",
-  // Féculents & légumineuses
-  "Riz blanc", "Riz brun", "Riz basmati", "Riz jasmin",
+  "Yogourt nature", "Yogourt grec", "Yogourt à la vanille", "Yogourt aux fraises",
+  "Fromage cheddar", "Fromage cheddar fort", "Fromage mozzarella", "Fromage parmesan râpé",
+  "Fromage ricotta", "Fromage cottage", "Fromage feta", "Fromage brie",
+  "Fromage camembert", "Fromage gruyère", "Fromage suisse", "Fromage havarti",
+  "Fromage à la crème", "Fromage en grains",
+  "Œufs", "Blancs d'œufs", "Œufs durs",
+  // ── Féculents & légumineuses ──
+  "Riz blanc", "Riz brun", "Riz basmati", "Riz jasmin", "Riz sauvage", "Riz arborio",
   "Pâtes spaghetti", "Pâtes penne", "Pâtes fusilli", "Pâtes rigatoni",
-  "Pain de blé", "Pain blanc", "Pain baguette", "Pain pita",
-  "Farine tout usage", "Farine de blé entier",
-  "Quinoa", "Couscous", "Orge", "Avoine", "Gruau",
-  "Lentilles vertes", "Lentilles rouges",
-  "Pois chiches", "Haricots noirs", "Haricots rouges", "Haricots blancs",
-  "Polenta", "Semoule",
-  // Épices & condiments
-  "Sel", "Poivre noir", "Poivre blanc",
-  "Paprika", "Paprika fumé", "Cumin", "Curcuma",
-  "Cannelle", "Muscade", "Gingembre", "Gingembre frais",
-  "Basilic", "Origan", "Thym", "Romarin", "Persil", "Coriandre",
-  "Laurier", "Estragon", "Herbes de Provence",
-  "Piment de Cayenne", "Piment fort", "Flocons de piment",
-  "Ail en poudre", "Oignon en poudre",
-  "Sauce soya", "Sauce Worcester", "Sauce tabasco",
-  "Vinaigre blanc", "Vinaigre de cidre", "Vinaigre balsamique",
-  "Huile d'olive", "Huile de canola", "Huile de sésame",
-  "Moutarde de Dijon", "Moutarde jaune", "Mayonnaise", "Ketchup",
-  "Miel", "Sirop d'érable", "Sucre blanc", "Sucre brun", "Cassonade",
-  // Bouillons & sauces
+  "Pâtes farfalle", "Pâtes linguine", "Pâtes tagliatelle", "Pâtes orzo",
+  "Pain de blé entier", "Pain blanc", "Pain baguette", "Pain ciabatta", "Pain pita",
+  "Pain naan", "Tortillas de blé", "Tortillas de maïs",
+  "Farine tout usage", "Farine de blé entier", "Farine de riz", "Farine d'amande",
+  "Quinoa", "Quinoa tricolore",
+  "Couscous", "Couscous de blé entier",
+  "Orge perlé", "Avoine à cuisson rapide", "Gruau", "Flocons d'avoine",
+  "Lentilles vertes", "Lentilles rouges", "Lentilles beluga",
+  "Pois chiches en conserve", "Pois chiches secs",
+  "Haricots noirs en conserve", "Haricots noirs secs",
+  "Haricots rouges en conserve", "Haricots rouges secs",
+  "Haricots blancs en conserve", "Haricots blancs secs",
+  "Edamame surgelé", "Edamame frais",
+  "Polenta", "Semoule de maïs",
+  // ── Épices, herbes & condiments ──
+  "Sel", "Sel de mer", "Fleur de sel",
+  "Poivre noir moulu", "Poivre blanc", "Poivre en grains",
+  "Paprika doux", "Paprika fumé", "Paprika fort",
+  "Cumin moulu", "Graines de cumin",
+  "Curcuma", "Curry en poudre", "Garam masala",
+  "Cannelle moulue", "Bâtons de cannelle",
+  "Muscade moulue", "Clou de girofle",
+  "Gingembre frais", "Gingembre moulu", "Gingembre confit",
+  "Basilic frais", "Basilic séché",
+  "Origan séché", "Thym séché", "Thym frais",
+  "Romarin séché", "Romarin frais",
+  "Persil frais", "Persil séché",
+  "Coriandre fraîche", "Coriandre moulue",
+  "Laurier", "Estragon séché", "Herbes de Provence", "Fines herbes",
+  "Piment de Cayenne", "Flocons de piment rouge", "Piment jalapeño",
+  "Sauce soya", "Tamari", "Sauce Worcestershire", "Sauce tabasco", "Sauce sriracha",
+  "Sauce hoisin", "Sauce teriyaki", "Sauce fish",
+  "Vinaigre blanc", "Vinaigre de cidre", "Vinaigre balsamique", "Vinaigre de riz",
+  "Huile d'olive", "Huile d'olive extra vierge", "Huile de canola", "Huile de sésame",
+  "Moutarde de Dijon", "Moutarde jaune", "Moutarde à l'ancienne",
+  "Mayonnaise", "Ketchup", "Relish",
+  "Miel", "Miel de trèfle",
+  "Sirop d'érable", "Sucre blanc", "Sucre brun", "Cassonade", "Sucre glace",
+  // ── Bouillons & sauces ──
   "Bouillon de poulet", "Bouillon de bœuf", "Bouillon de légumes",
-  "Sauce tomate", "Passata", "Concentré de tomate",
-  "Lait de coco", "Lait de coco léger",
-  // Divers
+  "Sauce tomate", "Passata de tomate", "Concentré de tomate",
+  // ── Noix, graines & divers ──
+  "Amandes entières", "Amandes effilées", "Amandes en poudre", "Amandes grillées",
+  "Noix de cajou", "Noix de cajou grillées",
+  "Arachides", "Arachides grillées",
+  "Pacanes", "Noix de Grenoble", "Noisettes",
+  "Graines de sésame", "Graines de lin", "Graines de chia", "Graines de citrouille",
   "Levure chimique", "Bicarbonate de soude", "Levure instantanée",
-  "Chocolat noir", "Chocolat au lait", "Cacao en poudre",
-  "Vanille", "Extrait de vanille",
-  "Amande", "Noix de cajou", "Arachide", "Pacane", "Noix de Grenoble",
-  "Graines de sésame", "Graines de lin", "Graines de chia",
+  "Chocolat noir", "Chocolat au lait", "Chocolat blanc", "Cacao en poudre", "Pépites de chocolat",
+  "Extrait de vanille", "Gousse de vanille",
 ];
 
 // ─── Détection auto de catégorie ──────────────────────────────────────────────
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "Légumes": ["tomate", "carotte", "oignon", "ail", "poivron", "brocoli", "épinard", "laitue", "concombre", "céleri", "poireau", "courgette", "aubergine", "haricot vert", "pois vert", "maïs", "pomme de terre", "patate", "navet", "radis", "betterave", "asperge", "artichaut", "chou", "endive", "fenouil", "panais", "champignon", "zucchini", "roquette", "mâche", "shiitake"],
-  "Fruits": ["pomme", "banane", "orange", "citron", "lime", "fraise", "bleuet", "framboise", "raisin", "pêche", "poire", "mangue", "ananas", "melon", "pastèque", "cerise", "abricot", "kiwi", "grenade", "figue", "prune", "canneberge", "avocat", "nectarine", "pamplemousse", "mûre"],
-  "Viandes": ["poulet", "bœuf", "boeuf", "porc", "dinde", "veau", "agneau", "bacon", "saucisse", "jambon", "prosciutto", "merguez", "saumon", "thon", "crevette", "pétoncle", "homard", "crabe", "tilapia", "morue", "doré", "truite", "moule", "palourde", "poisson", "volaille", "viande", "filet", "côtelette", "rôti", "gigot", "bifteck"],
-  "Produits laitiers": ["lait", "fromage", "yaourt", "yogourt", "beurre", "crème", "œuf", "oeuf", "mozzarella", "cheddar", "parmesan", "ricotta", "cottage", "féta", "brie", "camembert", "gruyère"],
-  "Féculents": ["riz", "pâte", "pain", "farine", "couscous", "quinoa", "orge", "avoine", "gruau", "céréale", "blé", "semoule", "polenta", "lentille", "pois chiche", "haricot noir", "haricot rouge", "haricot blanc"],
-  "Épices": ["sel", "poivre", "cumin", "paprika", "curcuma", "cannelle", "gingembre", "basilic", "thym", "origan", "persil", "coriandre", "laurier", "romarin", "estragon", "muscade", "piment", "cayenne", "safran", "herbe", "épice", "moutarde", "mayonnaise", "ketchup", "vinaigre", "sauce", "huile", "miel", "sirop", "sucre", "cassonade", "vanille", "levure", "bicarbonate", "cacao", "chocolat"],
+  "Légumes": ["tomate", "carotte", "oignon", "ail", "poivron", "brocoli", "épinard", "laitue", "concombre", "céleri", "poireau", "courgette", "aubergine", "haricot vert", "pois vert", "maïs", "pomme de terre", "patate", "navet", "radis", "betterave", "asperge", "artichaut", "chou", "endive", "fenouil", "panais", "champignon", "zucchini", "roquette", "mâche", "shiitake", "edamame", "rutabaga"],
+  "Fruits": ["pomme", "banane", "orange", "citron", "lime", "fraise", "bleuet", "framboise", "raisin", "pêche", "poire", "mangue", "ananas", "melon", "pastèque", "cerise", "abricot", "kiwi", "grenade", "figue", "prune", "canneberge", "avocat", "nectarine", "pamplemousse", "mûre", "papaye", "goyave", "litchi", "noix de coco", "clémentine", "mandarine"],
+  "Viandes": ["poulet", "bœuf", "boeuf", "porc", "dinde", "veau", "agneau", "bacon", "saucisse", "jambon", "prosciutto", "merguez", "pepperoni", "saumon", "thon", "crevette", "pétoncle", "homard", "crabe", "tilapia", "morue", "doré", "truite", "moule", "palourde", "poisson", "filet de", "côtelette", "rôti de", "gigot", "bifteck", "sardine", "maquereau"],
+  "Produits laitiers": ["lait", "fromage", "yaourt", "yogourt", "beurre", "crème", "œuf", "oeuf", "mozzarella", "cheddar", "parmesan", "ricotta", "cottage", "féta", "brie", "camembert", "gruyère", "havarti"],
+  "Féculents": ["riz", "pâtes", "pain", "farine", "couscous", "quinoa", "orge", "avoine", "gruau", "céréale", "blé", "semoule", "polenta", "lentille", "pois chiche", "haricot noir", "haricot rouge", "haricot blanc", "tortilla", "naan", "pita"],
+  "Épices": ["sel", "poivre", "cumin", "paprika", "curcuma", "cannelle", "gingembre", "basilic", "thym", "origan", "persil", "coriandre", "laurier", "romarin", "estragon", "muscade", "piment", "cayenne", "safran", "herbe", "moutarde", "mayonnaise", "ketchup", "vinaigre", "sauce", "huile", "miel", "sirop d'érable", "sucre", "cassonade", "vanille", "levure", "bicarbonate", "cacao", "chocolat", "curry", "garam", "noix de cajou", "amande", "arachide", "pacane", "noix", "graine", "bouillon"],
 };
 
 function detectCategory(name: string): string {
@@ -154,7 +206,6 @@ function SearchAutocomplete({
   onChange: (v: string) => void;
   onSelect: (suggestion: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -227,7 +278,7 @@ function SearchAutocomplete({
                       </>
                     ) : s}
                   </span>
-                  <span className="ml-auto text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-lg">
+                  <span className="ml-auto text-[11px] text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-lg shrink-0">
                     {detectCategory(s)}
                   </span>
                 </button>
@@ -260,7 +311,6 @@ export default function FridgePage() {
 
   const resetForm = () => { setFormName(""); setFormCategory("Légumes"); };
 
-  // Quand l'utilisateur clique une suggestion dans la barre de recherche
   const handleSuggestionSelect = (suggestion: string) => {
     setSearch(suggestion);
     setFormName(suggestion);
@@ -303,11 +353,7 @@ export default function FridgePage() {
             onChange={setSearch}
             onSelect={handleSuggestionSelect}
           />
-          <Select
-            value={filterCat}
-            onChange={(e) => setFilterCat(e.target.value)}
-            className="sm:w-48 bg-card"
-          >
+          <Select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} className="sm:w-48 bg-card">
             <option value="Tous">Toutes catégories</option>
             {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
           </Select>
@@ -343,7 +389,6 @@ export default function FridgePage() {
                       quantity: fd.get("quantity") as string,
                       unit: fd.get("unit") as string,
                       category: formCategory,
-                      conservationType: fd.get("conservationType") as string,
                     }
                   });
                 }}
@@ -384,18 +429,10 @@ export default function FridgePage() {
                 </div>
 
                 {/* Catégorie */}
-                <div className="space-y-2 lg:col-span-1">
+                <div className="space-y-2 lg:col-span-2">
                   <Label>Catégorie</Label>
                   <Select name="category" className="bg-white" value={formCategory} onChange={(e) => setFormCategory(e.target.value)}>
                     {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                  </Select>
-                </div>
-
-                {/* Conservation */}
-                <div className="space-y-2 lg:col-span-1">
-                  <Label>Conservation</Label>
-                  <Select name="conservationType" className="bg-white">
-                    {CONSERVATION_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
                   </Select>
                 </div>
 
@@ -447,46 +484,38 @@ export default function FridgePage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <AnimatePresence>
-            {filtered.map((item) => {
-              const conservColor = CONSERVATION_COLORS[item.conservationType] ?? "bg-muted text-muted-foreground border-border";
-              const conservIcon = CONSERVATION_ICONS[item.conservationType];
-              return (
-                <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} key={item.id}>
-                  <Card className="p-6 hover:shadow-md transition-all flex flex-col h-full relative overflow-hidden bg-card">
-                    <div className="absolute -right-6 -bottom-6 opacity-[0.03] pointer-events-none">
-                      {CATEGORY_ICONS[item.category] || <Package className="w-40 h-40" />}
+            {filtered.map((item) => (
+              <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} key={item.id}>
+                <Card className="p-6 hover:shadow-md transition-all flex flex-col h-full relative overflow-hidden bg-card">
+                  <div className="absolute -right-6 -bottom-6 opacity-[0.03] pointer-events-none">
+                    {CATEGORY_ICONS[item.category] || <Package className="w-40 h-40" />}
+                  </div>
+                  <div className="flex justify-between items-start mb-4 relative z-10">
+                    <div className="p-3 bg-muted/50 rounded-2xl">
+                      {CATEGORY_ICONS[item.category] || <Package className="w-6 h-6 text-muted-foreground" />}
                     </div>
-                    <div className="flex justify-between items-start mb-4 relative z-10">
-                      <div className="p-3 bg-muted/50 rounded-2xl">
-                        {CATEGORY_ICONS[item.category] || <Package className="w-6 h-6 text-muted-foreground" />}
-                      </div>
-                      <button
-                        onClick={() => deleteMutation.mutate({ id: item.id })}
-                        disabled={deleteMutation.isPending}
-                        className="p-2.5 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
-                    <div className="mt-auto relative z-10">
-                      <h3 className="font-bold text-xl leading-tight truncate mb-1" title={item.name}>{item.name}</h3>
-                      <p className="text-2xl font-display font-medium text-foreground/90 mb-3">
+                    <button
+                      onClick={() => deleteMutation.mutate({ id: item.id })}
+                      disabled={deleteMutation.isPending}
+                      className="p-2.5 text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="mt-auto relative z-10">
+                    <h3 className="font-bold text-xl leading-tight truncate mb-1" title={item.name}>{item.name}</h3>
+                    <div className="flex items-center justify-between mt-3">
+                      <p className="text-2xl font-display font-medium text-foreground/90">
                         {item.quantity} <span className="text-lg text-muted-foreground font-normal">{item.unit}</span>
                       </p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-xl border ${conservColor}`}>
-                          {conservIcon}
-                          {item.conservationType.charAt(0).toUpperCase() + item.conservationType.slice(1)}
-                        </span>
-                        <Badge variant="outline" className="text-[11px] font-medium uppercase tracking-wider bg-background/50 border-none">
-                          {item.category}
-                        </Badge>
-                      </div>
+                      <Badge variant="outline" className="text-[11px] font-medium uppercase tracking-wider bg-background/50 border-none">
+                        {item.category}
+                      </Badge>
                     </div>
-                  </Card>
-                </motion.div>
-              );
-            })}
+                  </div>
+                </Card>
+              </motion.div>
+            ))}
           </AnimatePresence>
         </div>
       )}
