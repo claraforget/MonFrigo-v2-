@@ -19,9 +19,7 @@ export function PaywallModal({
     setLoading(true);
     setError(null);
     try {
-      const apiBase = import.meta.env.BASE_URL.replace(/\/$/, "");
-      // Le frontend est servi sous /frigomenu, l'API sous /api
-      const res = await fetch(`${apiBase}/api/stripe/create-checkout-session`, {
+      const res = await fetch(`/api/stripe/create-checkout-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
