@@ -6,9 +6,12 @@ import {
   GetCurrentMenuResponse,
   GetShoppingListResponse,
 } from "@workspace/api-zod";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
+
+router.use(requireAuth);
 
 function getOpenAI(): OpenAI {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
@@ -19,11 +22,17 @@ function getOpenAI(): OpenAI {
   return new OpenAI({ baseURL, apiKey });
 }
 
-const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-
 router.post("/menu/generate", async (req, res): Promise<void> => {
-  const ingredients = await db.select().from(fridgeIngredientsTable);
-  const [prefs] = await db.select().from(userPreferencesTable).limit(1);
+  const userId = (req as AuthedRequest).userId;
+  const ingredients = await db
+    .select()
+    .from(fridgeIngredientsTable)
+    .where(eq(fridgeIngredientsTable.userId, userId));
+  const [prefs] = await db
+    .select()
+    .from(userPreferencesTable)
+    .where(eq(userPreferencesTable.userId, userId))
+    .limit(1);
 
   const preferences = prefs ?? {
     cookingTimePerDay: 45,
@@ -105,6 +114,7 @@ Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
   const [savedMenu] = await db
     .insert(weeklyMenusTable)
     .values({
+      userId,
       weekStart,
       days: menuData.days,
       estimatedCost: menuData.estimatedCost ?? 0,
@@ -121,9 +131,11 @@ Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
 });
 
 router.get("/menu/current", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const [menu] = await db
     .select()
     .from(weeklyMenusTable)
+    .where(eq(weeklyMenusTable.userId, userId))
     .orderBy(desc(weeklyMenusTable.generatedAt))
     .limit(1);
 
@@ -145,9 +157,11 @@ router.get("/menu/current", async (req, res): Promise<void> => {
 });
 
 router.delete("/menu/current", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const [latest] = await db
     .select()
     .from(weeklyMenusTable)
+    .where(eq(weeklyMenusTable.userId, userId))
     .orderBy(desc(weeklyMenusTable.generatedAt))
     .limit(1);
 
@@ -156,14 +170,16 @@ router.delete("/menu/current", async (req, res): Promise<void> => {
     return;
   }
 
-  await db.delete(weeklyMenusTable).where(eq(weeklyMenusTable.id, latest.id));
+  await db.delete(weeklyMenusTable).where(and(eq(weeklyMenusTable.id, latest.id), eq(weeklyMenusTable.userId, userId)));
   res.json({ success: true });
 });
 
 router.get("/menu/shopping-list", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const [menu] = await db
     .select()
     .from(weeklyMenusTable)
+    .where(eq(weeklyMenusTable.userId, userId))
     .orderBy(desc(weeklyMenusTable.generatedAt))
     .limit(1);
 
@@ -172,7 +188,10 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
     return;
   }
 
-  const fridgeItems = await db.select().from(fridgeIngredientsTable);
+  const fridgeItems = await db
+    .select()
+    .from(fridgeIngredientsTable)
+    .where(eq(fridgeIngredientsTable.userId, userId));
   const fridgeNames = fridgeItems.map(i => i.name.toLowerCase().trim());
 
   const ingredientMap = new Map<string, { quantity: string; unit: string; estimatedPrice: number }>();

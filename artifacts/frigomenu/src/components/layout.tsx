@@ -1,8 +1,9 @@
 import { Link, useLocation } from "wouter";
-import { Refrigerator, Settings, CalendarRange, ShoppingCart } from "lucide-react";
+import { Refrigerator, Settings, CalendarRange, ShoppingCart, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { useClerk, useUser } from "@clerk/react";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,6 +18,10 @@ const NAV_ITEMS = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
+  const { signOut } = useClerk();
+  const { user } = useUser();
+  const userLabel = user?.primaryEmailAddress?.emailAddress ?? user?.fullName ?? "";
+  const initial = (userLabel[0] ?? "?").toUpperCase();
 
   return (
     <div className="min-h-screen flex w-full">
@@ -58,6 +63,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        <div className="px-4 pb-6 pt-3 border-t border-border/50 mt-2">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-9 h-9 rounded-full bg-primary/15 text-primary font-semibold flex items-center justify-center text-sm">
+              {initial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground truncate" title={userLabel}>
+                {userLabel}
+              </p>
+            </div>
+            <button
+              onClick={() => signOut()}
+              className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+              title="Déconnexion"
+              aria-label="Déconnexion"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* Main Content */}

@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, fridgeIngredientsTable } from "@workspace/db";
 import {
   GetFridgeIngredientsResponse,
@@ -10,13 +10,18 @@ import {
   DeleteFridgeIngredientParams,
   DeleteFridgeIngredientResponse,
 } from "@workspace/api-zod";
+import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
+router.use(requireAuth);
+
 router.get("/fridge/ingredients", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const ingredients = await db
     .select()
     .from(fridgeIngredientsTable)
+    .where(eq(fridgeIngredientsTable.userId, userId))
     .orderBy(fridgeIngredientsTable.createdAt);
 
   res.json(GetFridgeIngredientsResponse.parse(ingredients.map(i => ({
@@ -27,6 +32,7 @@ router.get("/fridge/ingredients", async (req, res): Promise<void> => {
 });
 
 router.post("/fridge/ingredients", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const parsed = AddFridgeIngredientBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: parsed.error.message });
@@ -35,7 +41,7 @@ router.post("/fridge/ingredients", async (req, res): Promise<void> => {
 
   const [ingredient] = await db
     .insert(fridgeIngredientsTable)
-    .values(parsed.data)
+    .values({ ...parsed.data, userId })
     .returning();
 
   res.status(201).json({
@@ -46,6 +52,7 @@ router.post("/fridge/ingredients", async (req, res): Promise<void> => {
 });
 
 router.put("/fridge/ingredients/:id", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const params = UpdateFridgeIngredientParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -64,7 +71,7 @@ router.put("/fridge/ingredients/:id", async (req, res): Promise<void> => {
   const [ingredient] = await db
     .update(fridgeIngredientsTable)
     .set(parsed.data)
-    .where(eq(fridgeIngredientsTable.id, id))
+    .where(and(eq(fridgeIngredientsTable.id, id), eq(fridgeIngredientsTable.userId, userId)))
     .returning();
 
   if (!ingredient) {
@@ -80,6 +87,7 @@ router.put("/fridge/ingredients/:id", async (req, res): Promise<void> => {
 });
 
 router.delete("/fridge/ingredients/:id", async (req, res): Promise<void> => {
+  const userId = (req as AuthedRequest).userId;
   const params = DeleteFridgeIngredientParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -91,7 +99,7 @@ router.delete("/fridge/ingredients/:id", async (req, res): Promise<void> => {
 
   const [ingredient] = await db
     .delete(fridgeIngredientsTable)
-    .where(eq(fridgeIngredientsTable.id, id))
+    .where(and(eq(fridgeIngredientsTable.id, id), eq(fridgeIngredientsTable.userId, userId)))
     .returning();
 
   if (!ingredient) {
