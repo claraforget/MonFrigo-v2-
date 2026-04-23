@@ -317,7 +317,6 @@ export default function MenuPage() {
       <PaywallModal
         open={paywall.showPaywall}
         onClose={() => paywall.setShowPaywall(false)}
-        onSubscribed={paywall.subscribe}
       />
 
 

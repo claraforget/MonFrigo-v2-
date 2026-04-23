@@ -6,11 +6,9 @@ import { Button } from "@/components/ui-elements";
 export function PaywallModal({
   open,
   onClose,
-  onSubscribed,
 }: {
   open: boolean;
   onClose: () => void;
-  onSubscribed?: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +33,6 @@ export function PaywallModal({
       const { url } = await res.json();
       if (!url) throw new Error("URL Stripe manquante");
       window.location.href = url;
-      onSubscribed?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erreur de paiement");
       setLoading(false);

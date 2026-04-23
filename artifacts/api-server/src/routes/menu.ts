@@ -233,24 +233,166 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
   res.json(GetShoppingListResponse.parse(shoppingList));
 });
 
-function getCategoryForIngredient(name: string): string {
-  const categories: Record<string, string[]> = {
-    "Légumes": ["carotte", "tomate", "oignon", "ail", "poivron", "brocoli", "épinard", "laitue", "concombre", "céleri", "poireau", "courgette", "aubergine", "haricot", "pois", "maïs", "pomme de terre", "patate"],
-    "Fruits": ["pomme", "banane", "orange", "citron", "lime", "fraise", "bleuet", "framboise", "raisin", "pêche", "poire", "mangue", "ananas"],
-    "Viandes": ["poulet", "bœuf", "porc", "dinde", "veau", "agneau", "bacon", "saucisse", "jambon", "bison"],
-    "Poissons & Fruits de mer": ["saumon", "thon", "crevette", "morue", "tilapia", "doré", "homard", "crabe", "pétoncle"],
-    "Produits laitiers": ["lait", "fromage", "yaourt", "yogourt", "beurre", "crème", "œuf", "oeuf"],
-    "Féculents": ["riz", "pâtes", "pain", "farine", "couscous", "quinoa", "orge", "avoine", "céréale"],
-    "Épices & Condiments": ["sel", "poivre", "herbe", "épice", "sauce", "vinaigre", "huile", "moutarde", "ketchup", "mayo", "sirop"],
-    "Conserves": ["conserve", "boîte", "tomate en", "haricot en", "pois en"],
-  };
+// Catégories ordonnées du plus spécifique au plus général.
+// Les premiers matchs gagnent — placez les phrases composées AVANT les mots simples.
+const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
+  // Doit passer avant "Produits laitiers" (sinon "beurre" matche) et avant "Épices & Condiments"
+  {
+    category: "Tartinades & Beurres de noix",
+    keywords: [
+      "beurre d'arachide", "beurre d arachide", "beurre de noix", "beurre d'amande",
+      "beurre d amande", "beurre de cajou", "beurre de tournesol", "beurre de noisette",
+      "tahini", "tahin", "nutella", "pâte à tartiner", "pate a tartiner", "confiture",
+      "gelée", "gelee", "marmelade", "miel", "sirop d'érable", "sirop d erable",
+    ],
+  },
+  // Avant "Légumes" (haricot/pois/tomate) et "Produits laitiers"
+  {
+    category: "Conserves & Bocaux",
+    keywords: [
+      "en conserve", "en boîte", "en boite", "en bocal",
+      "tomates en conserve", "haricots en conserve", "pois chiches en conserve",
+      "thon en conserve", "maïs en conserve", "olives", "cornichons",
+      "soupe en conserve", "lait de coco",
+    ],
+  },
+  // Légumineuses séparées des légumes (pois chiches, lentilles…)
+  {
+    category: "Légumineuses",
+    keywords: [
+      "pois chiche", "lentille", "haricot rouge", "haricot noir", "haricot blanc",
+      "haricot pinto", "fève", "feve", "edamame", "soya", "soja", "tofu", "tempeh",
+    ],
+  },
+  // Noix et graines (avant Épices)
+  {
+    category: "Noix & Graines",
+    keywords: [
+      "amande", "noix", "noisette", "pistache", "cajou", "pacane", "pignon",
+      "graine de tournesol", "graine de citrouille", "graine de chia", "graine de lin",
+      "graine de sésame", "sésame", "sesame", "arachide", "pépite",
+    ],
+  },
+  // Boulangerie (avant Féculents pour "pain")
+  {
+    category: "Boulangerie",
+    keywords: [
+      "pain", "baguette", "bagel", "brioche", "croissant", "tortilla", "pita",
+      "naan", "muffin anglais", "ciabatta",
+    ],
+  },
+  // Poissons & fruits de mer (avant Viandes)
+  {
+    category: "Poissons & Fruits de mer",
+    keywords: [
+      "saumon", "thon", "crevette", "morue", "tilapia", "doré", "dore", "homard",
+      "crabe", "pétoncle", "petoncle", "moule", "huître", "huitre", "calmar",
+      "sardine", "maquereau", "truite", "hareng", "anchois", "poisson",
+    ],
+  },
+  // Viandes
+  {
+    category: "Viandes",
+    keywords: [
+      "poulet", "bœuf", "boeuf", "porc", "dinde", "veau", "agneau", "bacon",
+      "saucisse", "jambon", "bison", "canard", "lapin", "côtelette", "cotelette",
+      "steak", "haché", "hache", "rôti", "roti", "filet", "escalope", "merguez",
+      "chorizo", "salami", "pepperoni", "prosciutto",
+    ],
+  },
+  // Produits laitiers — APRÈS tartinades et boulangerie pour éviter les faux positifs
+  {
+    category: "Produits laitiers & Œufs",
+    keywords: [
+      "lait", "fromage", "cheddar", "mozzarella", "parmesan", "feta", "ricotta",
+      "brie", "camembert", "yaourt", "yogourt", "beurre", "crème", "creme",
+      "œuf", "oeuf", "kéfir", "kefir", "skyr",
+    ],
+  },
+  // Fruits (avant Légumes pour éviter chevauchement avec "tomate")
+  {
+    category: "Fruits",
+    keywords: [
+      "pomme", "banane", "orange", "citron", "lime", "fraise", "bleuet",
+      "framboise", "mûre", "mure", "raisin", "pêche", "peche", "poire", "mangue",
+      "ananas", "kiwi", "melon", "pastèque", "pasteque", "abricot", "prune",
+      "cerise", "papaye", "grenade", "figue", "datte", "canneberge",
+    ],
+  },
+  // Légumes
+  {
+    category: "Légumes",
+    keywords: [
+      "carotte", "tomate", "oignon", "échalote", "echalote", "ail", "poivron",
+      "brocoli", "chou-fleur", "chou", "épinard", "epinard", "laitue", "roquette",
+      "concombre", "céleri", "celeri", "poireau", "courgette", "zucchini",
+      "aubergine", "champignon", "radis", "betterave", "navet", "rutabaga",
+      "panais", "courge", "citrouille", "asperge", "artichaut", "fenouil",
+      "maïs", "mais", "pomme de terre", "patate", "igname",
+      "gingembre", "persil", "coriandre", "basilic", "menthe", "ciboulette",
+      "estragon", "thym frais", "romarin frais",
+    ],
+  },
+  // Féculents & céréales (sans pain)
+  {
+    category: "Féculents & Céréales",
+    keywords: [
+      "riz", "pâtes", "pates", "spaghetti", "macaroni", "lasagne", "linguine",
+      "penne", "fusilli", "nouilles", "couscous", "quinoa", "orge", "avoine",
+      "boulgour", "millet", "sarrasin", "céréales", "cereales", "granola",
+      "farine", "semoule",
+    ],
+  },
+  // Huiles & vinaigres
+  {
+    category: "Huiles & Vinaigres",
+    keywords: [
+      "huile", "vinaigre",
+    ],
+  },
+  // Épices, herbes séchées et condiments
+  {
+    category: "Épices & Condiments",
+    keywords: [
+      "sel", "poivre", "épice", "epice", "herbe", "sauce", "moutarde", "ketchup",
+      "mayonnaise", "mayo", "soya", "tamari", "sriracha", "tabasco", "harissa",
+      "pesto", "salsa", "wasabi", "raifort", "câpre", "capre", "curry", "paprika",
+      "cumin", "cannelle", "muscade", "clou de girofle", "cardamome", "safran",
+      "origan", "thym", "romarin", "laurier", "anis", "fenouil moulu",
+      "bouillon", "cube de bouillon", "ail en poudre", "oignon en poudre",
+    ],
+  },
+  // Boissons
+  {
+    category: "Boissons",
+    keywords: [
+      "jus", "café", "cafe", "thé", "the", "eau", "boisson", "vin", "bière", "biere",
+      "soda", "limonade", "lait d'amande", "lait de soya", "lait d'avoine",
+    ],
+  },
+  // Sucres & desserts
+  {
+    category: "Sucres & Desserts",
+    keywords: [
+      "sucre", "cassonade", "chocolat", "cacao", "vanille", "levure", "poudre à pâte",
+      "poudre a pate", "bicarbonate", "fécule", "fecule", "biscuit", "gâteau", "gateau",
+      "tarte", "muffin",
+    ],
+  },
+  // Surgelés (mot-clé explicite)
+  {
+    category: "Surgelés",
+    keywords: ["surgelé", "surgele", "congelé", "congele"],
+  },
+];
 
-  for (const [category, keywords] of Object.entries(categories)) {
-    if (keywords.some(k => name.includes(k))) {
+function getCategoryForIngredient(name: string): string {
+  const n = name.toLowerCase();
+  for (const { category, keywords } of CATEGORY_RULES) {
+    if (keywords.some(k => n.includes(k))) {
       return category;
     }
   }
-
   return "Autres";
 }
 
