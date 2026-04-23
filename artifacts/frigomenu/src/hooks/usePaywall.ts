@@ -1,27 +1,38 @@
 import { useState, useEffect } from "react";
+import { useUser } from "@clerk/react";
 
 const FREE_GENERATIONS = 2;
-const STORAGE_COUNT_KEY = "frigomenu_generation_count";
-const STORAGE_SUB_KEY = "frigomenu_subscribed";
+
+function keys(userId: string | null) {
+  const suffix = userId ?? "anon";
+  return {
+    count: `frigomenu_generation_count_${suffix}`,
+    sub: `frigomenu_subscribed_${suffix}`,
+  };
+}
 
 export function usePaywall() {
-  const [count, setCount] = useState<number>(() => {
-    return parseInt(localStorage.getItem(STORAGE_COUNT_KEY) ?? "0", 10);
-  });
+  const { user, isLoaded } = useUser();
+  const userId = user?.id ?? null;
 
-  const [isSubscribed, setIsSubscribed] = useState<boolean>(() => {
-    return localStorage.getItem(STORAGE_SUB_KEY) === "true";
-  });
-
+  const [count, setCount] = useState<number>(0);
+  const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
-  const isBlocked = !isSubscribed && count >= FREE_GENERATIONS;
+  useEffect(() => {
+    if (!isLoaded) return;
+    const k = keys(userId);
+    setCount(parseInt(localStorage.getItem(k.count) ?? "0", 10));
+    setIsSubscribed(localStorage.getItem(k.sub) === "true");
+  }, [isLoaded, userId]);
+
+  const isBlocked = isLoaded && !isSubscribed && count >= FREE_GENERATIONS;
   const remainingFree = Math.max(0, FREE_GENERATIONS - count);
 
   const incrementCount = () => {
     const next = count + 1;
     setCount(next);
-    localStorage.setItem(STORAGE_COUNT_KEY, String(next));
+    localStorage.setItem(keys(userId).count, String(next));
     if (!isSubscribed && next >= FREE_GENERATIONS) {
       setShowPaywall(true);
     }
@@ -37,7 +48,7 @@ export function usePaywall() {
 
   const subscribe = () => {
     setIsSubscribed(true);
-    localStorage.setItem(STORAGE_SUB_KEY, "true");
+    localStorage.setItem(keys(userId).sub, "true");
     setShowPaywall(false);
   };
 
