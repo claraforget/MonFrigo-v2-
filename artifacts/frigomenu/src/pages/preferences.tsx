@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { useGetPreferences, useSavePreferences } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, Button, Input, Label } from "@/components/ui-elements";
-import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check } from "lucide-react";
+import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui-elements";
+import { useUser } from "@clerk/react";
+import { usePaywall } from "@/hooks/usePaywall";
 
 const ALLERGIES = ["Gluten", "Arachides", "Lactose", "Œufs", "Fruits de mer", "Noix", "Soja", "Sésame"];
 const DIETS = ["Végétarien", "Vegan", "Sans gluten", "Méditerranéen", "Faible en gras", "Riche en protéines"];
@@ -48,6 +50,66 @@ function MultiSelectChip({
         );
       })}
     </div>
+  );
+}
+
+function SubscriptionCard() {
+  const { user } = useUser();
+  const paywall = usePaywall();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const openPortal = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const email = user?.primaryEmailAddress?.emailAddress;
+      if (!email) throw new Error("Email du compte introuvable");
+      const res = await fetch("/api/stripe/create-portal-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          returnUrl: window.location.href,
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? `Erreur ${res.status}`);
+      if (!j.url) throw new Error("URL du portail manquante");
+      window.location.href = j.url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur");
+      setLoading(false);
+    }
+  };
+
+  if (!paywall.isSubscribed) return null;
+
+  return (
+    <Card className="p-8 bg-gradient-to-br from-primary/8 to-secondary/8 border-primary/20">
+      <div className="flex items-start gap-4">
+        <div className="p-3 bg-primary/15 rounded-2xl shrink-0">
+          <Sparkles className="w-6 h-6 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xl font-display font-bold">Abonnement Premium actif</h3>
+          <p className="text-muted-foreground text-sm mt-1.5">
+            Gérez votre méthode de paiement, consultez vos factures ou annulez votre abonnement à tout moment via le portail sécurisé Stripe.
+          </p>
+          {error && (
+            <div className="mt-3 bg-destructive/10 text-destructive text-sm rounded-xl p-3">
+              {error}
+            </div>
+          )}
+          <div className="mt-5">
+            <Button onClick={openPortal} disabled={loading} variant="outline">
+              <ExternalLink className="w-4 h-4 mr-2" />
+              {loading ? "Ouverture..." : "Gérer mon abonnement"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
 
@@ -99,6 +161,8 @@ export default function PreferencesPage() {
           L'IA utilisera ces informations pour générer un menu parfaitement adapté à votre foyer.
         </p>
       </div>
+
+      <SubscriptionCard />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

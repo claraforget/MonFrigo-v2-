@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Check, ShieldCheck, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui-elements";
+import { useUser } from "@clerk/react";
 
 export function PaywallModal({
   open,
@@ -12,6 +13,7 @@ export function PaywallModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useUser();
 
   const handleSubscribe = async () => {
     setLoading(true);
@@ -24,6 +26,8 @@ export function PaywallModal({
         body: JSON.stringify({
           successUrl: `${currentUrl}?paid=true`,
           cancelUrl: `${currentUrl}?paid=cancel`,
+          email: user?.primaryEmailAddress?.emailAddress,
+          userId: user?.id,
         }),
       });
       if (!res.ok) {

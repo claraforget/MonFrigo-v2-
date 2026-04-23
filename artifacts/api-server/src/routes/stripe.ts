@@ -13,8 +13,17 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
   }
 
   try {
-    const { successUrl: bodySuccess, cancelUrl: bodyCancel } =
-      (req.body ?? {}) as { successUrl?: string; cancelUrl?: string };
+    const {
+      successUrl: bodySuccess,
+      cancelUrl: bodyCancel,
+      email,
+      userId,
+    } = (req.body ?? {}) as {
+      successUrl?: string;
+      cancelUrl?: string;
+      email?: string;
+      userId?: string;
+    };
 
     const origin =
       (req.headers["origin"] as string | undefined) ??
@@ -26,6 +35,9 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
+      customer_email: email,
+      client_reference_id: userId,
+      subscription_data: userId ? { metadata: { userId } } : undefined,
       line_items: [
         {
           price_data: {
@@ -48,6 +60,49 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
     return res.json({ url: session.url });
   } catch (err) {
     logger.error({ err }, "Stripe checkout session error");
+    const msg = err instanceof Error ? err.message : "Erreur inconnue";
+    return res.status(500).json({ error: msg });
+  }
+});
+
+router.post("/stripe/create-portal-session", async (req, res) => {
+  if (!stripe) {
+    return res.status(500).json({ error: "Stripe non configuré" });
+  }
+
+  try {
+    const { email, returnUrl: bodyReturn } = (req.body ?? {}) as {
+      email?: string;
+      returnUrl?: string;
+    };
+
+    if (!email) {
+      return res.status(400).json({ error: "Email requis" });
+    }
+
+    const origin =
+      (req.headers["origin"] as string | undefined) ??
+      `https://${process.env["REPLIT_DEV_DOMAIN"] ?? "localhost"}`;
+    const returnUrl = bodyReturn ?? `${origin}/`;
+
+    // Trouver le client Stripe par email
+    const customers = await stripe.customers.list({ email, limit: 1 });
+    const customer = customers.data[0];
+
+    if (!customer) {
+      return res.status(404).json({
+        error: "Aucun abonnement trouvé pour ce compte. Si vous venez de vous abonner, attendez quelques secondes et réessayez.",
+      });
+    }
+
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: customer.id,
+      return_url: returnUrl,
+    });
+
+    return res.json({ url: portal.url });
+  } catch (err) {
+    logger.error({ err }, "Stripe portal session error");
     const msg = err instanceof Error ? err.message : "Erreur inconnue";
     return res.status(500).json({ error: msg });
   }
