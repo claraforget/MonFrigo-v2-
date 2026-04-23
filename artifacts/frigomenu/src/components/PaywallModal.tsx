@@ -19,9 +19,14 @@ export function PaywallModal({
     setLoading(true);
     setError(null);
     try {
+      const currentUrl = window.location.origin + window.location.pathname;
       const res = await fetch(`/api/stripe/create-checkout-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          successUrl: `${currentUrl}?paid=true`,
+          cancelUrl: `${currentUrl}?paid=cancel`,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));

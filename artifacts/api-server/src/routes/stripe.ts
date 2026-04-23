@@ -13,13 +13,15 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
   }
 
   try {
+    const { successUrl: bodySuccess, cancelUrl: bodyCancel } =
+      (req.body ?? {}) as { successUrl?: string; cancelUrl?: string };
+
     const origin =
       (req.headers["origin"] as string | undefined) ??
-      (req.headers["referer"] as string | undefined)?.replace(/\/[^/]*$/, "") ??
       `https://${process.env["REPLIT_DEV_DOMAIN"] ?? "localhost"}`;
 
-    const successUrl = `${origin}/frigomenu/menu?paid=true`;
-    const cancelUrl = `${origin}/frigomenu/menu?paid=cancel`;
+    const successUrl = bodySuccess ?? `${origin}/?paid=true`;
+    const cancelUrl = bodyCancel ?? `${origin}/?paid=cancel`;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
