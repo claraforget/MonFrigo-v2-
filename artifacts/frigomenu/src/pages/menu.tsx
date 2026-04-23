@@ -293,10 +293,24 @@ export default function MenuPage() {
       </div>
 
       {!paywall.isSubscribed && (
-        <div className="text-xs text-muted-foreground text-right -mt-6 no-print">
-          {paywall.remainingFree > 0
-            ? `${paywall.remainingFree} génération${paywall.remainingFree > 1 ? "s" : ""} gratuite${paywall.remainingFree > 1 ? "s" : ""} restante${paywall.remainingFree > 1 ? "s" : ""}`
-            : "Vous avez utilisé vos générations gratuites"}
+        <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground -mt-6 no-print">
+          <span>
+            {paywall.remainingFree > 0
+              ? `${paywall.remainingFree} génération${paywall.remainingFree > 1 ? "s" : ""} gratuite${paywall.remainingFree > 1 ? "s" : ""} restante${paywall.remainingFree > 1 ? "s" : ""}`
+              : "Vous avez utilisé vos générations gratuites"}
+          </span>
+          <span className="text-muted-foreground/40">·</span>
+          <button
+            onClick={() => paywall.setShowPaywall(true)}
+            className="text-primary font-semibold hover:underline"
+          >
+            Passer à Premium →
+          </button>
+        </div>
+      )}
+      {paywall.isSubscribed && (
+        <div className="text-xs text-emerald-600 font-semibold text-right -mt-6 no-print flex items-center justify-end gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" /> Accès Premium activé
         </div>
       )}
 
