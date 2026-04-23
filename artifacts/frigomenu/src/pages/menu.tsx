@@ -2,10 +2,12 @@ import { useGetCurrentMenu, useGenerateMenu, useDeleteCurrentMenu } from "@works
 import { Card, Button, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles, Printer, Clock, DollarSign, ChevronDown, CheckCircle2, Trash2 } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Meal } from "@workspace/api-client-react/src/generated/api.schemas";
+import { usePaywall } from "@/hooks/usePaywall";
+import { PaywallModal } from "@/components/PaywallModal";
 
 function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal, forceOpen?: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -83,11 +85,31 @@ function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Mea
 export default function MenuPage() {
   const { data, isLoading } = useGetCurrentMenu();
   const queryClient = useQueryClient();
+  const paywall = usePaywall();
+
+  // Détecte le retour de Stripe (?paid=true) et active l'abonnement
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") === "true") {
+      paywall.subscribe();
+      params.delete("paid");
+      const newUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+      window.history.replaceState({}, "", newUrl);
+    }
+  }, []);
+
   const generateMutation = useGenerateMenu({
     mutation: {
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] })
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] });
+        paywall.incrementCount();
+      }
     }
   });
+
+  const handleGenerateClick = () => {
+    paywall.checkAndGenerate(() => generateMutation.mutate());
+  };
 
   const deleteMutation = useDeleteCurrentMenu({
     mutation: {
@@ -259,7 +281,7 @@ export default function MenuPage() {
             </>
           )}
           <Button 
-            onClick={() => generateMutation.mutate()} 
+            onClick={handleGenerateClick} 
             disabled={generateMutation.isPending}
             size="lg"
             className="w-full sm:w-auto"
@@ -269,6 +291,21 @@ export default function MenuPage() {
           </Button>
         </div>
       </div>
+
+      {!paywall.isSubscribed && (
+        <div className="text-xs text-muted-foreground text-right -mt-6 no-print">
+          {paywall.remainingFree > 0
+            ? `${paywall.remainingFree} génération${paywall.remainingFree > 1 ? "s" : ""} gratuite${paywall.remainingFree > 1 ? "s" : ""} restante${paywall.remainingFree > 1 ? "s" : ""}`
+            : "Vous avez utilisé vos générations gratuites"}
+        </div>
+      )}
+
+      <PaywallModal
+        open={paywall.showPaywall}
+        onClose={() => paywall.setShowPaywall(false)}
+        onSubscribed={paywall.subscribe}
+      />
+
 
       {/* Print header visible only in PDF */}
       <div className="hidden print:block mb-8 text-center border-b pb-4">

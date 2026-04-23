@@ -18,7 +18,8 @@
     "express": "^5",
     "openai": "^6.32.0",
     "pino": "^9",
-    "pino-http": "^10"
+    "pino-http": "^10",
+    "stripe": "^22.0.2"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
