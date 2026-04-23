@@ -121,10 +121,10 @@ export function PaywallModal({
                 <div className="flex items-baseline justify-center gap-1.5">
                   <span className="text-5xl font-display font-bold text-foreground">10</span>
                   <span className="text-2xl font-semibold text-foreground">$</span>
-                  <span className="text-sm text-muted-foreground ml-1">CAD</span>
+                  <span className="text-sm text-muted-foreground ml-1">CAD / mois</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Paiement unique · Accès à vie
+                  Annulable à tout moment
                 </p>
               </div>
 
@@ -140,7 +140,7 @@ export function PaywallModal({
                 size="lg"
                 className="w-full"
               >
-                {loading ? "Redirection..." : "Souscrire pour 10 $"}
+                {loading ? "Redirection..." : "S'abonner pour 10 $ / mois"}
               </Button>
 
               <p className="text-[11px] text-muted-foreground text-center mt-4 flex items-center justify-center gap-1.5">

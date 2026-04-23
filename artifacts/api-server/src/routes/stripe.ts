@@ -24,18 +24,19 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
     const cancelUrl = bodyCancel ?? `${origin}/?paid=cancel`;
 
     const session = await stripe.checkout.sessions.create({
-      mode: "payment",
+      mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
         {
           price_data: {
             currency: "cad",
             product_data: {
-              name: "FrigoMenu — Accès illimité",
+              name: "FrigoMenu Premium",
               description:
-                "Génération illimitée de menus personnalisés. Vos économies à l'épicerie rembourseront largement ce coût.",
+                "Génération illimitée de menus personnalisés. Annulable à tout moment.",
             },
             unit_amount: 1000, // 10,00 $ CAD
+            recurring: { interval: "month" },
           },
           quantity: 1,
         },
