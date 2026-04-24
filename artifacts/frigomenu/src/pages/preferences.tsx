@@ -70,6 +70,7 @@ function SubscriptionCard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
+          userId: user?.id,
           returnUrl: window.location.href,
         }),
       });

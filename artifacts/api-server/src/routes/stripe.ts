@@ -71,13 +71,14 @@ router.post("/stripe/create-portal-session", async (req, res) => {
   }
 
   try {
-    const { email, returnUrl: bodyReturn } = (req.body ?? {}) as {
+    const { email, userId, returnUrl: bodyReturn } = (req.body ?? {}) as {
       email?: string;
+      userId?: string;
       returnUrl?: string;
     };
 
-    if (!email) {
-      return res.status(400).json({ error: "Email requis" });
+    if (!email && !userId) {
+      return res.status(400).json({ error: "Email ou identifiant utilisateur requis" });
     }
 
     const origin =
@@ -85,18 +86,55 @@ router.post("/stripe/create-portal-session", async (req, res) => {
       `https://${process.env["REPLIT_DEV_DOMAIN"] ?? "localhost"}`;
     const returnUrl = bodyReturn ?? `${origin}/`;
 
-    // Trouver le client Stripe par email
-    const customers = await stripe.customers.list({ email, limit: 1 });
-    const customer = customers.data[0];
+    let customerId: string | undefined;
 
-    if (!customer) {
+    // 1) Chercher d'abord via metadata.userId sur les abonnements (le plus fiable)
+    if (userId) {
+      try {
+        const subs = await stripe.subscriptions.search({
+          query: `metadata['userId']:'${userId}'`,
+          limit: 1,
+        });
+        const sub = subs.data[0];
+        if (sub) {
+          customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
+        }
+      } catch (e) {
+        logger.warn({ err: e }, "Subscription search by userId failed, falling back to email");
+      }
+    }
+
+    // 2) Chercher via les sessions checkout par client_reference_id
+    if (!customerId && userId) {
+      try {
+        const sessions = await stripe.checkout.sessions.list({ limit: 100 });
+        const match = sessions.data.find(
+          (s) => s.client_reference_id === userId && s.customer
+        );
+        if (match?.customer) {
+          customerId = typeof match.customer === "string" ? match.customer : match.customer.id;
+        }
+      } catch (e) {
+        logger.warn({ err: e }, "Checkout session lookup failed");
+      }
+    }
+
+    // 3) Fallback : chercher par email
+    if (!customerId && email) {
+      const customers = await stripe.customers.list({ email, limit: 1 });
+      const customer = customers.data[0];
+      if (customer) customerId = customer.id;
+    }
+
+    if (!customerId) {
       return res.status(404).json({
-        error: "Aucun abonnement trouvé pour ce compte. Si vous venez de vous abonner, attendez quelques secondes et réessayez.",
+        error:
+          "Aucun abonnement trouvé pour ce compte. Si vous vous êtes abonné avec une autre adresse courriel, contactez-nous pour qu'on lie votre abonnement.",
       });
     }
 
     const portal = await stripe.billingPortal.sessions.create({
-      customer: customer.id,
+      customer: customerId,
       return_url: returnUrl,
     });
 

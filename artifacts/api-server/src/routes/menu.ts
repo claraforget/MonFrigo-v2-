@@ -47,23 +47,43 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     ? ingredients.map(i => `${i.name} (${i.quantity} ${i.unit})`).join(", ")
     : "Aucun ingrédient spécifié – proposer des repas simples avec des ingrédients courants";
 
-  const prompt = `Tu es un chef cuisinier québécois expert en planification de repas. Génère un menu complet pour 7 jours en JSON.
+  const seed = Math.floor(Math.random() * 1_000_000);
 
-CONTRAINTES:
+  const prompt = `Tu es un chef cuisinier québécois ET un nutritionniste diplômé. Tu planifies des menus hebdomadaires SAVOUREUX, VARIÉS et ÉQUILIBRÉS sur le plan nutritionnel.
+
+CONTRAINTES DU FOYER:
 - Temps de cuisson max par jour: ${preferences.cookingTimePerDay} minutes
 - Budget hebdomadaire: ${preferences.weeklyBudget}$ CAD
 - Nombre de personnes: ${preferences.numberOfPeople}
-- Allergies à éviter: ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
+- Allergies à éviter (STRICT, ne JAMAIS inclure): ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
 - Préférences alimentaires: ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucune"}
 - Cuisines préférées: ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "toutes les cuisines"}
 - Ingrédients disponibles au frigo: ${ingredientList}
 
-INSTRUCTIONS:
-- Utilise en priorité les ingrédients du frigo
-- Propose des recettes variées et savoureuses
-- Inclus les recettes québécoises traditionnelles
-- Assure-toi que la somme de tous les repas respecte le budget
-- Répartis équitablement les temps de cuisson sur la semaine
+EXIGENCES NUTRITIONNELLES (Guide alimentaire canadien):
+- Chaque repas principal doit contenir : 1/2 légumes & fruits, 1/4 protéines, 1/4 grains entiers
+- Au moins 3 sources DIFFÉRENTES de protéines maigres dans la semaine (poisson, légumineuses, volaille, tofu, œufs)
+- Inclure du POISSON ou des FRUITS DE MER au moins 2 fois par semaine (oméga-3)
+- Inclure au moins 2 repas 100% VÉGÉTARIENS (légumineuses, tofu) pour réduire la viande rouge
+- Privilégier les grains entiers (riz brun, quinoa, pâtes de blé entier, avoine) plutôt que raffinés
+- Limiter les fritures, charcuteries, sauces crémeuses et sucres ajoutés
+- Au moins 5 portions de légumes/fruits différents par jour
+- Méthodes de cuisson saines : vapeur, four, mijoté, sauté léger, grillé
+
+EXIGENCES DE VARIÉTÉ (TRÈS IMPORTANT):
+- AUCUNE recette ne doit se répéter dans la semaine (21 recettes uniques)
+- Varier les cuisines du monde sur la semaine (parmi les préférences ou éclectique)
+- Varier les protéines : ne pas servir la même 2 jours de suite
+- Varier les textures, couleurs et températures (chaud/froid, croquant/fondant)
+- Petits-déjeuners variés : alterner sucré/salé, chaud/froid, rapide/élaboré
+- Inclure 1 ou 2 plats québécois traditionnels REVISITÉS en version santé
+- Graine d'inspiration aléatoire pour cette semaine: ${seed} (utilise-la pour explorer de nouvelles idées, ne jamais répéter les mêmes 7 jours)
+
+INSTRUCTIONS GÉNÉRALES:
+- Utilise en PRIORITÉ les ingrédients du frigo pour réduire le gaspillage
+- Respecter la somme totale du budget
+- Répartir équitablement les temps de cuisson (jours rapides en semaine, plus élaborés le weekend)
+- Instructions claires, étape par étape, accessibles à un cuisinier amateur
 
 Réponds UNIQUEMENT avec un JSON valide dans ce format exact:
 {
