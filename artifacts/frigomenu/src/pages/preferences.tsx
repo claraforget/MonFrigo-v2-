@@ -65,7 +65,8 @@ function SubscriptionCard() {
     try {
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!email) throw new Error("Email du compte introuvable");
-      const res = await fetch("/api/stripe/create-portal-session", {
+      const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+      const res = await fetch(`${apiBase}/api/stripe/create-portal-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
