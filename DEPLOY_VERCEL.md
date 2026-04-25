@@ -50,8 +50,15 @@ Une fois Render déployé, notez l'URL publique du backend (ex :
 
 1. Allez sur https://vercel.com → **Add New Project**.
 2. Importez votre dépôt GitHub `MonFrigo-v2`.
-3. Vercel détecte automatiquement `vercel.json` à la racine — laissez les valeurs
-   par défaut, elles sont déjà bonnes.
+3. **TRÈS IMPORTANT — Root Directory** : Vercel va vous demander quel dossier
+   est la racine du projet. Vous avez **deux options qui marchent** :
+   - **Option A (recommandée)** : laissez le champ **vide** ou mettez `/`.
+     Vercel utilisera le `vercel.json` à la racine du dépôt.
+   - **Option B** : mettez `artifacts/frigomenu`. Vercel utilisera le
+     `vercel.json` à l'intérieur du dossier (les deux configs sont fournies).
+4. Laissez les autres champs par défaut — ne touchez **PAS** au Build Command
+   ni à l'Output Directory dans l'interface Vercel : laissez Vercel les lire
+   depuis le `vercel.json`.
 
 ### Variables d'environnement Vercel
 
