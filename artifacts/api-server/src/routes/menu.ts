@@ -41,7 +41,21 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     allergies: [],
     dietaryPreferences: [],
     cuisinePreferences: [],
+    mealTypes: ["breakfast", "lunch", "dinner"],
   };
+
+  const selectedMeals = preferences.mealTypes && preferences.mealTypes.length > 0
+    ? preferences.mealTypes
+    : ["breakfast", "lunch", "dinner"];
+  const mealLabels: Record<string, string> = {
+    breakfast: "déjeuner (matin)",
+    lunch: "dîner (midi)",
+    dinner: "souper (soir)",
+  };
+  const mealsToGenerate = selectedMeals
+    .map((k) => mealLabels[k] ?? k)
+    .join(", ");
+  const totalRecipes = selectedMeals.length * 7;
 
   const ingredientList = ingredients.length > 0
     ? ingredients.map(i => `${i.name} (${i.quantity} ${i.unit})`).join(", ")
@@ -70,8 +84,13 @@ EXIGENCES NUTRITIONNELLES (Guide alimentaire canadien):
 - Au moins 5 portions de légumes/fruits différents par jour
 - Méthodes de cuisson saines : vapeur, four, mijoté, sauté léger, grillé
 
+REPAS À PLANIFIER (IMPORTANT):
+- Génère UNIQUEMENT ces repas pour chaque jour : ${mealsToGenerate}
+- Pour les repas NON listés ci-dessus, mets la valeur null dans le JSON (ne génère pas de recette)
+- L'utilisateur s'occupe lui-même des autres repas, ne les remplis pas
+
 EXIGENCES DE VARIÉTÉ (TRÈS IMPORTANT):
-- AUCUNE recette ne doit se répéter dans la semaine (21 recettes uniques)
+- AUCUNE recette ne doit se répéter dans la semaine (${totalRecipes} recettes uniques pour ${selectedMeals.length} repas/jour x 7 jours)
 - Varier les cuisines du monde sur la semaine (parmi les préférences ou éclectique)
 - Varier les protéines : ne pas servir la même 2 jours de suite
 - Varier les textures, couleurs et températures (chaud/froid, croquant/fondant)

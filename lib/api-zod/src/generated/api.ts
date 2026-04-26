@@ -40,7 +40,7 @@ export const AddFridgeIngredientBody = zod.object({
   quantity: zod.string(),
   unit: zod.string(),
   category: zod.string(),
-  conservationType: zod.string().optional().default("frais"),
+  conservationType: zod.string().optional(),
   expiryDate: zod.string().nullish(),
 });
 
@@ -95,6 +95,11 @@ export const GetPreferencesResponse = zod.object({
   allergies: zod.array(zod.string()),
   dietaryPreferences: zod.array(zod.string()),
   cuisinePreferences: zod.array(zod.string()),
+  mealTypes: zod
+    .array(zod.string())
+    .describe(
+      "Which meal slots the AI should generate (breakfast, lunch, dinner)",
+    ),
   updatedAt: zod.string(),
 });
 
@@ -108,6 +113,7 @@ export const SavePreferencesBody = zod.object({
   allergies: zod.array(zod.string()),
   dietaryPreferences: zod.array(zod.string()),
   cuisinePreferences: zod.array(zod.string()),
+  mealTypes: zod.array(zod.string()),
 });
 
 export const SavePreferencesResponse = zod.object({
@@ -120,6 +126,11 @@ export const SavePreferencesResponse = zod.object({
   allergies: zod.array(zod.string()),
   dietaryPreferences: zod.array(zod.string()),
   cuisinePreferences: zod.array(zod.string()),
+  mealTypes: zod
+    .array(zod.string())
+    .describe(
+      "Which meal slots the AI should generate (breakfast, lunch, dinner)",
+    ),
   updatedAt: zod.string(),
 });
 
@@ -210,6 +221,13 @@ export const GetCurrentMenuResponse = zod.object({
       generatedAt: zod.string(),
     })
     .nullish(),
+});
+
+/**
+ * @summary Delete the current menu
+ */
+export const DeleteCurrentMenuResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

@@ -52,6 +52,8 @@ export interface UserPreferences {
   allergies: string[];
   dietaryPreferences: string[];
   cuisinePreferences: string[];
+  /** Which meal slots the AI should generate (breakfast, lunch, dinner) */
+  mealTypes: string[];
   updatedAt: string;
 }
 
@@ -62,6 +64,7 @@ export interface UserPreferencesInput {
   allergies: string[];
   dietaryPreferences: string[];
   cuisinePreferences: string[];
+  mealTypes: string[];
 }
 
 export interface Meal {

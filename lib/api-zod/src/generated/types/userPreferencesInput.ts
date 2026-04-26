@@ -13,4 +13,5 @@ export interface UserPreferencesInput {
   allergies: string[];
   dietaryPreferences: string[];
   cuisinePreferences: string[];
+  mealTypes: string[];
 }

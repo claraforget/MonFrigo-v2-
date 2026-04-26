@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useAuth } from "@clerk/react";
 import { shadcn } from "@clerk/themes";
-import { setBaseUrl } from "@workspace/api-client-react";
+import { setBaseUrl, setAuthTokenGetter } from "@workspace/api-client-react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout";
@@ -120,6 +120,19 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
+// Attache le jeton de session Clerk à chaque appel API. Sans ça, le backend
+// (qui est sur un autre domaine en production) reçoit toutes les requêtes
+// comme anonymes et répond 401 « Non authentifié ».
+function ClerkApiAuthBridge() {
+  const { getToken, isLoaded } = useAuth();
+  useEffect(() => {
+    if (!isLoaded) return;
+    setAuthTokenGetter(() => getToken());
+    return () => setAuthTokenGetter(null);
+  }, [getToken, isLoaded]);
+  return null;
+}
+
 function ProtectedApp() {
   return (
     <>
@@ -163,6 +176,7 @@ function ClerkProviderWithRoutes() {
     >
       <QueryClientProvider client={queryClient}>
         <ClerkQueryClientCacheInvalidator />
+        <ClerkApiAuthBridge />
         <TooltipProvider>
           <Switch>
             <Route path="/sign-in/*?" component={SignInPage} />

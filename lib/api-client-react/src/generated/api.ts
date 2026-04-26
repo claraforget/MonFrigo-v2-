@@ -824,6 +824,9 @@ export type DeleteCurrentMenuMutationResult = NonNullable<
 
 export type DeleteCurrentMenuMutationError = ErrorType<unknown>;
 
+/**
+ * @summary Delete the current menu
+ */
 export const useDeleteCurrentMenu = <
   TError = ErrorType<unknown>,
   TContext = unknown,

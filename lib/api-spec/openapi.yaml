@@ -325,6 +325,11 @@ components:
           type: array
           items:
             type: string
+        mealTypes:
+          type: array
+          description: Which meal slots the AI should generate (breakfast, lunch, dinner)
+          items:
+            type: string
         updatedAt:
           type: string
       required:
@@ -335,6 +340,7 @@ components:
         - allergies
         - dietaryPreferences
         - cuisinePreferences
+        - mealTypes
         - updatedAt
 
     UserPreferencesInput:
@@ -358,6 +364,10 @@ components:
           type: array
           items:
             type: string
+        mealTypes:
+          type: array
+          items:
+            type: string
       required:
         - cookingTimePerDay
         - weeklyBudget
@@ -365,6 +375,7 @@ components:
         - allergies
         - dietaryPreferences
         - cuisinePreferences
+        - mealTypes
 
     WeeklyMenu:
       type: object

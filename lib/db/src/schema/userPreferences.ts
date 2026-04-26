@@ -13,6 +13,7 @@ export const userPreferencesTable = pgTable(
     allergies: text("allergies").array().notNull().default([]),
     dietaryPreferences: text("dietary_preferences").array().notNull().default([]),
     cuisinePreferences: text("cuisine_preferences").array().notNull().default([]),
+    mealTypes: text("meal_types").array().notNull().default(["breakfast", "lunch", "dinner"]),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (t) => [uniqueIndex("user_preferences_user_id_unique").on(t.userId)],

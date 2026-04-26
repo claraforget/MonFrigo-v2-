@@ -31,6 +31,7 @@ router.get("/preferences", async (req, res): Promise<void> => {
         allergies: [],
         dietaryPreferences: [],
         cuisinePreferences: [],
+        mealTypes: ["breakfast", "lunch", "dinner"],
       })
       .returning();
     prefs = created;

@@ -2,15 +2,24 @@ import { useState, useEffect } from "react";
 import { useGetPreferences, useSavePreferences } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, Button, Input, Label } from "@/components/ui-elements";
-import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink } from "lucide-react";
+import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink, UtensilsCrossed } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui-elements";
-import { useUser } from "@clerk/react";
+import { useUser, useAuth } from "@clerk/react";
 import { usePaywall } from "@/hooks/usePaywall";
 
 const ALLERGIES = ["Gluten", "Arachides", "Lactose", "Œufs", "Fruits de mer", "Noix", "Soja", "Sésame"];
-const DIETS = ["Végétarien", "Vegan", "Sans gluten", "Méditerranéen", "Faible en gras", "Riche en protéines"];
+const DIETS = [
+  "Végétarien", "Vegan", "Sans gluten", "Méditerranéen", "Faible en gras",
+  "Riche en protéines", "Halal", "Casher", "Faible en sucres",
+];
 const CUISINES = ["Française", "Italienne", "Mexicaine", "Asiatique", "Québécoise", "Méditerranéenne"];
+
+const MEAL_TYPES: Array<{ key: "breakfast" | "lunch" | "dinner"; label: string }> = [
+  { key: "breakfast", label: "Déjeuner" },
+  { key: "lunch", label: "Dîner" },
+  { key: "dinner", label: "Souper" },
+];
 
 function MultiSelectChip({ 
   options, 
@@ -55,6 +64,7 @@ function MultiSelectChip({
 
 function SubscriptionCard() {
   const { user } = useUser();
+  const { getToken } = useAuth();
   const paywall = usePaywall();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +76,13 @@ function SubscriptionCard() {
       const email = user?.primaryEmailAddress?.emailAddress;
       if (!email) throw new Error("Email du compte introuvable");
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+      const token = await getToken();
       const res = await fetch(`${apiBase}/api/stripe/create-portal-session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           email,
           userId: user?.id,
@@ -131,6 +145,7 @@ export default function PreferencesPage() {
     allergies: [] as string[],
     dietaryPreferences: [] as string[],
     cuisinePreferences: [] as string[],
+    mealTypes: ["breakfast", "lunch", "dinner"] as string[],
   });
 
   useEffect(() => {
@@ -142,9 +157,22 @@ export default function PreferencesPage() {
         allergies: pref.allergies || [],
         dietaryPreferences: pref.dietaryPreferences || [],
         cuisinePreferences: pref.cuisinePreferences || [],
+        mealTypes: pref.mealTypes && pref.mealTypes.length > 0
+          ? pref.mealTypes
+          : ["breakfast", "lunch", "dinner"],
       });
     }
   }, [pref]);
+
+  const toggleMealType = (key: string) => {
+    setFormData(fd => {
+      const next = fd.mealTypes.includes(key)
+        ? fd.mealTypes.filter(k => k !== key)
+        : [...fd.mealTypes, key];
+      // Au moins un repas doit rester sélectionné.
+      return { ...fd, mealTypes: next.length > 0 ? next : fd.mealTypes };
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,6 +287,50 @@ export default function PreferencesPage() {
               selected={formData.cuisinePreferences} 
               onChange={(v) => setFormData({...formData, cuisinePreferences: v})} 
             />
+          </div>
+
+          <div className="h-px bg-border/40 w-full" />
+
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-blue-500/10 rounded-xl">
+                <UtensilsCrossed className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-display font-bold">Repas à générer</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Cochez les repas que l'IA doit planifier. Décochez ceux que vous gérez par vous-même.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {MEAL_TYPES.map(({ key, label }) => {
+                const isSelected = formData.mealTypes.includes(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => toggleMealType(key)}
+                    className={cn(
+                      "flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-medium transition-all duration-200",
+                      isSelected
+                        ? "bg-primary/15 text-foreground border-transparent"
+                        : "bg-card border border-border/60 text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "w-4 h-4 rounded border flex items-center justify-center",
+                        isSelected
+                          ? "bg-primary border-primary"
+                          : "border-border bg-card"
+                      )}
+                    >
+                      {isSelected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
+                    </span>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </Card>
 

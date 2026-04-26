@@ -16,5 +16,7 @@ export interface UserPreferences {
   allergies: string[];
   dietaryPreferences: string[];
   cuisinePreferences: string[];
+  /** Which meal slots the AI should generate (breakfast, lunch, dinner) */
+  mealTypes: string[];
   updatedAt: string;
 }
