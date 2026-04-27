@@ -1,7 +1,8 @@
-# Déployer FrigoMenu sur Vercel (frontend) + Render (backend)
+# Déployer FrigoMenu sur Vercel (frontend + backend)
 
-Ce guide s'adresse à celles et ceux qui veulent déployer le **frontend** sur Vercel
-et garder le **backend Express** sur Render (ou Railway, Fly.io, etc.).
+Ce guide explique comment déployer **tout** sur Vercel : le frontend React et le
+backend Express (en serverless function). La base de données est hébergée sur Neon
+(PostgreSQL gratuit).
 
 ---
 
@@ -19,46 +20,23 @@ propre compte Clerk.
 
 ---
 
-## 2. Backend (Render)
+## 2. Base de données (Neon)
 
-Variables d'environnement à configurer sur Render :
-
-| Variable | Exemple / source |
-|---|---|
-| `DATABASE_URL` | URL Postgres (Neon, Supabase, Render Postgres…) |
-| `CLERK_SECRET_KEY` | Secret key Clerk de l'étape 1 |
-| `CLERK_PUBLISHABLE_KEY` | Publishable key Clerk |
-| `STRIPE_SECRET_KEY` | Clé secrète Stripe (`sk_live_…` ou `sk_test_…`) |
-| `OPENAI_API_KEY` | Clé OpenAI (créez un compte sur platform.openai.com) |
-| `NODE_ENV` | `production` |
-
-**Note CORS** : le backend autorise déjà toutes les origines avec `credentials`,
-donc le frontend Vercel pourra l'appeler sans config supplémentaire.
-
-**Note** : sur Replit, OpenAI passe par un proxy Replit (`AI_INTEGRATIONS_OPENAI_*`).
-Hors Replit, il vous faut votre propre clé OpenAI. Vérifiez le code dans
-`artifacts/api-server/src/lib/openai.ts` pour adapter l'initialisation si nécessaire.
-
-Une fois Render déployé, notez l'URL publique du backend (ex :
-`https://frigomenu-api.onrender.com`).
+1. Créez un compte sur https://neon.tech (gratuit).
+2. Créez un nouveau projet et notez l'URL de connexion (pooler).
+3. Poussez le schéma avec : `DATABASE_URL="<votre-url>" pnpm --filter @workspace/db run push`
 
 ---
 
-## 3. Frontend (Vercel)
+## 3. Déployer sur Vercel
 
 ### Importer le projet
 
 1. Allez sur https://vercel.com → **Add New Project**.
 2. Importez votre dépôt GitHub `MonFrigo-v2`.
-3. **TRÈS IMPORTANT — Root Directory** : Vercel va vous demander quel dossier
-   est la racine du projet. Vous avez **deux options qui marchent** :
-   - **Option A (recommandée)** : laissez le champ **vide** ou mettez `/`.
-     Vercel utilisera le `vercel.json` à la racine du dépôt.
-   - **Option B** : mettez `artifacts/frigomenu`. Vercel utilisera le
-     `vercel.json` à l'intérieur du dossier (les deux configs sont fournies).
+3. **Root Directory** : laissez le champ **vide** ou mettez `/`.
 4. Laissez les autres champs par défaut — ne touchez **PAS** au Build Command
-   ni à l'Output Directory dans l'interface Vercel : laissez Vercel les lire
-   depuis le `vercel.json`.
+   ni à l'Output Directory : laissez Vercel les lire depuis le `vercel.json`.
 
 ### Variables d'environnement Vercel
 
@@ -66,19 +44,23 @@ Dans Project Settings → Environment Variables, ajoutez :
 
 | Variable | Valeur |
 |---|---|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Publishable key Clerk de l'étape 1 |
-| `VITE_API_URL` | URL publique du backend Render (ex: `https://frigomenu-api.onrender.com`) |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Publishable key Clerk |
+| `CLERK_SECRET_KEY` | Secret key Clerk |
+| `CLERK_PUBLISHABLE_KEY` | Publishable key Clerk |
+| `DATABASE_URL` | URL Postgres Neon (pooler) |
+| `OPENAI_API_KEY` | Clé OpenAI (https://platform.openai.com/api-keys) |
+| `STRIPE_SECRET_KEY` | Clé secrète Stripe (`sk_test_…` ou `sk_live_…`) |
 
-⚠️ **Important** : ne configurez **PAS** `VITE_CLERK_PROXY_URL` sur Vercel — cette
-variable est spécifique au proxy Replit et ferait planter Clerk.
+⚠️ **Important** : ne configurez **PAS** `VITE_CLERK_PROXY_URL` ni `VITE_API_URL`
+sur Vercel — le backend tourne maintenant sur le même domaine.
 
 ### Déployer
 
 Cliquez sur **Deploy**. Vercel va :
 1. Installer toutes les dépendances du monorepo (`pnpm install`)
-2. Compiler uniquement le frontend (`pnpm --filter @workspace/frigomenu build`)
-3. Servir le dossier `artifacts/frigomenu/dist/public`
-4. Réécrire toutes les routes vers `index.html` (SPA routing pour Wouter)
+2. Compiler le backend Express (`pnpm --filter @workspace/api-server build`)
+3. Compiler le frontend (`pnpm --filter @workspace/frigomenu build`)
+4. Servir le frontend comme SPA et le backend comme serverless function sous `/api/*`
 
 ---
 
@@ -99,10 +81,9 @@ Cependant, **dans le tableau de bord Stripe** :
 
 1. Ouvrez votre URL Vercel (ex: `https://mon-frigo.vercel.app`).
 2. Inscrivez-vous avec un nouveau compte.
-3. Ajoutez un ingrédient au frigo → vérifiez qu'il s'affiche (preuve que le
-   frontend parle bien au backend Render).
+3. Ajoutez un ingrédient au frigo → vérifiez qu'il s'affiche.
 4. Tentez une génération de menu → preuve qu'OpenAI fonctionne.
-5. Tentez l'abonnement Stripe → preuve que Stripe est bien configuré côté backend.
+5. Tentez l'abonnement Stripe → preuve que Stripe est bien configuré.
 
 ---
 
@@ -111,6 +92,6 @@ Cependant, **dans le tableau de bord Stripe** :
 | Symptôme | Cause probable | Solution |
 |---|---|---|
 | Page blanche au chargement | `VITE_CLERK_PUBLISHABLE_KEY` manquante | Ajouter la variable dans Vercel et redéployer |
-| Erreur CORS dans la console | URL backend mal renseignée | Vérifier `VITE_API_URL` (sans slash final) |
+| 401 sur tous les appels API | `CLERK_SECRET_KEY` mal configurée | Re-vérifier les env vars Vercel |
 | « Aucun abonnement trouvé » | Email Clerk différent de l'email Stripe | Voir le code de `create-portal-session` qui cherche aussi par `userId` |
-| 401 sur tous les appels API | `CLERK_SECRET_KEY` mal configurée côté Render | Re-vérifier les env vars Render |
+| Erreur « relation does not exist » | Schéma non poussé dans Neon | Exécuter `pnpm --filter @workspace/db run push` avec `DATABASE_URL` |

@@ -14,10 +14,10 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 function getOpenAI(): OpenAI {
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  if (!baseURL || !apiKey) {
-    throw new Error("OpenAI integration env vars not set");
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1";
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY (or AI_INTEGRATIONS_OPENAI_API_KEY) must be set");
   }
   return new OpenAI({ baseURL, apiKey });
 }
