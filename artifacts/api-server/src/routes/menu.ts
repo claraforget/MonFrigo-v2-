@@ -13,13 +13,36 @@ const router: IRouter = Router();
 
 router.use(requireAuth);
 
-function getOpenAI(): OpenAI {
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL ?? "https://api.openai.com/v1";
-  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY ?? process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY (or AI_INTEGRATIONS_OPENAI_API_KEY) must be set");
+function getOpenAI(): { client: OpenAI; model: string } {
+  // Replit environment: use the built-in proxy (free)
+  if (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+    return {
+      client: new OpenAI({
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+      }),
+      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+    };
   }
-  return new OpenAI({ baseURL, apiKey });
+  // Groq: free tier, no credit card needed (https://console.groq.com)
+  if (process.env.GROQ_API_KEY) {
+    return {
+      client: new OpenAI({
+        baseURL: "https://api.groq.com/openai/v1",
+        apiKey: process.env.GROQ_API_KEY,
+      }),
+      model: process.env.OPENAI_MODEL ?? "llama-3.3-70b-versatile",
+    };
+  }
+  // Standard OpenAI (paid)
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("Set GROQ_API_KEY (free at console.groq.com) or OPENAI_API_KEY");
+  }
+  return {
+    client: new OpenAI({ apiKey }),
+    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  };
 }
 
 router.post("/menu/generate", async (req, res): Promise<void> => {
@@ -140,10 +163,11 @@ Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
   send({ status: "start" });
 
   try {
-    const openai = getOpenAI();
+    const { client: openai, model } = getOpenAI();
+    req.log.info({ model }, "Generating menu with model");
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
     });
@@ -186,9 +210,13 @@ Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
       }),
     });
     res.end();
-  } catch (err) {
-    req.log.error({ err }, "Menu generation failed");
-    send({ status: "error", message: "Erreur lors de la génération du menu" });
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    req.log.error({ err, errMsg }, "Menu generation failed");
+    const userMsg = errMsg.includes("API key") || errMsg.includes("auth") || errMsg.includes("401")
+      ? "Clé API IA manquante ou invalide — contactez le support."
+      : "Erreur lors de la génération du menu";
+    send({ status: "error", message: userMsg });
     res.end();
     return;
   }
