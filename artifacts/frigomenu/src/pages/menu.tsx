@@ -1,13 +1,14 @@
-import { useGetCurrentMenu, useGenerateMenu, useDeleteCurrentMenu } from "@workspace/api-client-react";
+import { useGetCurrentMenu, useDeleteCurrentMenu } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles, Printer, Clock, DollarSign, ChevronDown, CheckCircle2, Trash2 } from "lucide-react";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Meal } from "@workspace/api-client-react/src/generated/api.schemas";
 import { usePaywall } from "@/hooks/usePaywall";
 import { PaywallModal } from "@/components/PaywallModal";
+import { useAuth } from "@clerk/react";
 
 function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal, forceOpen?: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -86,6 +87,10 @@ export default function MenuPage() {
   const { data, isLoading } = useGetCurrentMenu();
   const queryClient = useQueryClient();
   const paywall = usePaywall();
+  const { getToken } = useAuth();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Détecte le retour de Stripe (?paid=true) et active l'abonnement
   useEffect(() => {
@@ -98,17 +103,57 @@ export default function MenuPage() {
     }
   }, []);
 
-  const generateMutation = useGenerateMenu({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] });
-        paywall.incrementCount();
+  const generateMenuSSE = useCallback(async () => {
+    setIsGenerating(true);
+    setGenerateError(null);
+    abortRef.current = new AbortController();
+    try {
+      const token = await getToken();
+      const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+      const res = await fetch(`${apiBase}/api/menu/generate`, {
+        method: "POST",
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "Content-Type": "application/json",
+        },
+        signal: abortRef.current.signal,
+      });
+      if (!res.ok || !res.body) {
+        throw new Error(`HTTP ${res.status}`);
       }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          const line = part.trim();
+          if (!line.startsWith("data:")) continue;
+          const json = line.slice(5).trim();
+          if (!json) continue;
+          const event = JSON.parse(json);
+          if (event.status === "done") {
+            queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] });
+            paywall.incrementCount();
+          } else if (event.status === "error") {
+            setGenerateError(event.message ?? "Erreur de génération");
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setGenerateError("Impossible de générer le menu. Réessayez.");
+    } finally {
+      setIsGenerating(false);
     }
-  });
+  }, [getToken, queryClient, paywall]);
 
   const handleGenerateClick = () => {
-    paywall.checkAndGenerate(() => generateMutation.mutate());
+    paywall.checkAndGenerate(() => generateMenuSSE());
   };
 
   const deleteMutation = useDeleteCurrentMenu({
@@ -282,12 +327,12 @@ export default function MenuPage() {
           )}
           <Button 
             onClick={handleGenerateClick} 
-            disabled={generateMutation.isPending}
+            disabled={isGenerating}
             size="lg"
             className="w-full sm:w-auto"
           >
             <Sparkles className="w-5 h-5 mr-2" />
-            {generateMutation.isPending ? "Génération en cours..." : "Générer un menu"}
+            {isGenerating ? "Génération en cours..." : "Générer un menu"}
           </Button>
         </div>
       </div>
@@ -326,17 +371,26 @@ export default function MenuPage() {
         {hasMenu && <p className="text-gray-500 mt-2">Généré le {new Date(data.menu.generatedAt).toLocaleDateString('fr-CA')}</p>}
       </div>
 
-      {generateMutation.isPending && (
+      {isGenerating && (
         <div className="py-24 flex flex-col items-center justify-center text-center bg-primary/5 rounded-[2rem] border border-primary/10">
           <div className="p-4 bg-primary/10 rounded-2xl mb-6">
             <Sparkles className="w-10 h-10 text-primary animate-pulse" />
           </div>
           <h3 className="text-2xl font-bold text-foreground mb-3">Création de la magie culinaire...</h3>
-          <p className="text-muted-foreground max-w-md text-lg">L'IA analyse votre frigo et vos préférences pour composer le menu parfait. Cela prend généralement 5 à 10 secondes.</p>
+          <p className="text-muted-foreground max-w-md text-lg">L'IA analyse votre frigo et vos préférences pour composer le menu parfait. Cela prend généralement 10 à 20 secondes.</p>
         </div>
       )}
 
-      {!generateMutation.isPending && !hasMenu && (
+      {!isGenerating && generateError && (
+        <div className="py-8 flex flex-col items-center justify-center text-center bg-destructive/5 rounded-2xl border border-destructive/20">
+          <p className="text-destructive font-medium">{generateError}</p>
+          <button onClick={handleGenerateClick} className="mt-3 text-sm text-primary font-semibold hover:underline">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {!isGenerating && !generateError && !hasMenu && (
         <div className="py-24 text-center flex flex-col items-center justify-center opacity-80">
           <img 
             src={`${import.meta.env.BASE_URL}images/empty-menu.png`} 
@@ -350,7 +404,7 @@ export default function MenuPage() {
         </div>
       )}
 
-      {!generateMutation.isPending && hasMenu && (
+      {!isGenerating && hasMenu && (
         <div className="space-y-8">
           {data.menu.days.map((day, idx) => (
             <Card key={idx} className="p-0 overflow-hidden print-break-inside-avoid shadow-sm hover:shadow-md transition-shadow">

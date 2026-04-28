@@ -127,46 +127,71 @@ Réponds UNIQUEMENT avec un JSON valide dans ce format exact:
 
 Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche`;
 
-  const openai = getOpenAI();
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-5.2",
-    max_completion_tokens: 8192,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const send = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
 
-  const content = completion.choices[0]?.message?.content ?? "";
+  send({ status: "start" });
 
-  let menuData: { days: object[]; estimatedCost: number };
   try {
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found");
-    menuData = JSON.parse(jsonMatch[0]);
-  } catch (e) {
-    req.log.error({ err: e, content }, "Failed to parse AI menu response");
-    res.status(500).json({ error: "Erreur lors de la génération du menu" });
+    const openai = getOpenAI();
+
+    const stream = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      stream: true,
+    });
+
+    let fullContent = "";
+    let charsSinceLastPing = 0;
+    for await (const chunk of stream) {
+      const token = chunk.choices[0]?.delta?.content ?? "";
+      fullContent += token;
+      charsSinceLastPing += token.length;
+      if (charsSinceLastPing >= 150) {
+        send({ status: "generating" });
+        charsSinceLastPing = 0;
+      }
+    }
+
+    const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error("No JSON found in response");
+    const menuData: { days: object[]; estimatedCost: number } = JSON.parse(jsonMatch[0]);
+
+    const weekStart = new Date().toISOString().split("T")[0];
+    const [savedMenu] = await db
+      .insert(weeklyMenusTable)
+      .values({
+        userId,
+        weekStart,
+        days: menuData.days,
+        estimatedCost: menuData.estimatedCost ?? 0,
+      })
+      .returning();
+
+    send({
+      status: "done",
+      menu: GenerateMenuResponse.parse({
+        id: savedMenu.id,
+        weekStart: savedMenu.weekStart,
+        days: savedMenu.days as object[],
+        estimatedCost: savedMenu.estimatedCost,
+        generatedAt: savedMenu.generatedAt.toISOString(),
+      }),
+    });
+    res.end();
+  } catch (err) {
+    req.log.error({ err }, "Menu generation failed");
+    send({ status: "error", message: "Erreur lors de la génération du menu" });
+    res.end();
     return;
   }
-
-  const weekStart = new Date().toISOString().split("T")[0];
-
-  const [savedMenu] = await db
-    .insert(weeklyMenusTable)
-    .values({
-      userId,
-      weekStart,
-      days: menuData.days,
-      estimatedCost: menuData.estimatedCost ?? 0,
-    })
-    .returning();
-
-  res.json(GenerateMenuResponse.parse({
-    id: savedMenu.id,
-    weekStart: savedMenu.weekStart,
-    days: savedMenu.days as object[],
-    estimatedCost: savedMenu.estimatedCost,
-    generatedAt: savedMenu.generatedAt.toISOString(),
-  }));
 });
 
 router.get("/menu/current", async (req, res): Promise<void> => {
