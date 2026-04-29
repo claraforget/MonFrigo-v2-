@@ -54,6 +54,7 @@ export interface UserPreferences {
   cuisinePreferences: string[];
   /** Which meal slots the AI should generate (breakfast, lunch, dinner) */
   mealTypes: string[];
+  difficultyPreference: "Facile" | "Moyen" | "Avancé";
   updatedAt: string;
 }
 
@@ -65,6 +66,7 @@ export interface UserPreferencesInput {
   dietaryPreferences: string[];
   cuisinePreferences: string[];
   mealTypes: string[];
+  difficultyPreference: "Facile" | "Moyen" | "Avancé";
 }
 
 export interface Meal {

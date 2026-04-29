@@ -76,6 +76,7 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     dietaryPreferences: [],
     cuisinePreferences: [],
     mealTypes: ["breakfast", "lunch", "dinner"],
+    difficultyPreference: "Moyen",
   };
 
   const selectedMeals = preferences.mealTypes && preferences.mealTypes.length > 0
@@ -123,10 +124,12 @@ SAVEUR ET SOPHISTICATION:
 - Noms de recettes créatifs et appétissants (ex: "Saumon à la croûte de pistaches, purée de chou-fleur au citron" plutôt que "Saumon avec chou-fleur")
 - S'adapter au temps disponible (${preferences.cookingTimePerDay} min/jour) : semaine = techniques rapides mais savoureuses; weekend = techniques plus élaborées si le temps le permet
 
-NIVEAU DE DIFFICULTÉ (champ "difficultyLevel") — choisir selon technique et temps:
-- "Facile" : techniques de base, ≤ 25 min, aucun équipement spécial (salade, sauté rapide, bol assemblé)
-- "Moyen" : 2-3 techniques simultanées, 25-40 min, attention requise (rôtissage, sauce réduite, marinade)
-- "Avancé" : techniques avancées ou > 40 min (braiser, confit, croûte, sauce complexe, temps de repos)
+NIVEAU DE DIFFICULTÉ DEMANDÉ: ${preferences.difficultyPreference ?? "Moyen"}
+Adapter la complexité des recettes à ce niveau. Définitions:
+- "Facile" : techniques de base, ≤ 25 min, aucun équipement spécial (sauté rapide, bol assemblé, omelette)
+- "Moyen" : 2-3 techniques simultanées, 25-40 min (rôtissage, sauce réduite, marinade, grillé)
+- "Avancé" : techniques élaborées ou > 40 min (braiser, confit, croûte, sauce complexe, cuisson lente)
+Assign the "difficultyLevel" field matching each recipe's actual complexity (can vary ±1 level from the preference for variety).
 
 AUTRES RÈGLES:
 - Aucune recette répétée dans la semaine

@@ -100,6 +100,7 @@ export const GetPreferencesResponse = zod.object({
     .describe(
       "Which meal slots the AI should generate (breakfast, lunch, dinner)",
     ),
+  difficultyPreference: zod.enum(["Facile", "Moyen", "Avancé"]).default("Moyen"),
   updatedAt: zod.string(),
 });
 
@@ -114,6 +115,7 @@ export const SavePreferencesBody = zod.object({
   dietaryPreferences: zod.array(zod.string()),
   cuisinePreferences: zod.array(zod.string()),
   mealTypes: zod.array(zod.string()),
+  difficultyPreference: zod.enum(["Facile", "Moyen", "Avancé"]).default("Moyen"),
 });
 
 export const SavePreferencesResponse = zod.object({
@@ -131,6 +133,7 @@ export const SavePreferencesResponse = zod.object({
     .describe(
       "Which meal slots the AI should generate (breakfast, lunch, dinner)",
     ),
+  difficultyPreference: zod.enum(["Facile", "Moyen", "Avancé"]).default("Moyen"),
   updatedAt: zod.string(),
 });
 

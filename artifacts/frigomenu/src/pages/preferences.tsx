@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useGetPreferences, useSavePreferences } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, Button, Input, Label } from "@/components/ui-elements";
-import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink, UtensilsCrossed } from "lucide-react";
+import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink, UtensilsCrossed, BarChart2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui-elements";
 import { useUser, useAuth } from "@clerk/react";
@@ -146,6 +146,7 @@ export default function PreferencesPage() {
     dietaryPreferences: [] as string[],
     cuisinePreferences: [] as string[],
     mealTypes: ["breakfast", "lunch", "dinner"] as string[],
+    difficultyPreference: "Moyen" as "Facile" | "Moyen" | "Avancé",
   });
 
   useEffect(() => {
@@ -160,6 +161,7 @@ export default function PreferencesPage() {
         mealTypes: pref.mealTypes && pref.mealTypes.length > 0
           ? pref.mealTypes
           : ["breakfast", "lunch", "dinner"],
+        difficultyPreference: (pref.difficultyPreference as "Facile" | "Moyen" | "Avancé") || "Moyen",
       });
     }
   }, [pref]);
@@ -327,6 +329,50 @@ export default function PreferencesPage() {
                       {isSelected && <Check className="w-3 h-3 text-primary-foreground" strokeWidth={3} />}
                     </span>
                     {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="h-px bg-border/40 w-full" />
+
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-purple-500/10 rounded-xl">
+                <BarChart2 className="w-5 h-5 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-display font-bold">Niveau de cuisine</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              L'IA adaptera la complexité des recettes à votre niveau de confort en cuisine.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {(["Facile", "Moyen", "Avancé"] as const).map((level) => {
+                const isSelected = formData.difficultyPreference === level;
+                const meta = {
+                  Facile: { desc: "Techniques de base, ≤ 25 min", color: "emerald" },
+                  Moyen: { desc: "2-3 techniques, 25-40 min", color: "amber" },
+                  Avancé: { desc: "Techniques élaborées, > 40 min", color: "purple" },
+                }[level];
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, difficultyPreference: level })}
+                    className={cn(
+                      "flex flex-col items-start gap-1 px-6 py-4 rounded-2xl text-sm font-medium transition-all duration-200 border min-w-[130px]",
+                      isSelected
+                        ? meta.color === "emerald"
+                          ? "bg-emerald-50 border-emerald-300 text-emerald-800 dark:bg-emerald-950/40 dark:border-emerald-700 dark:text-emerald-300"
+                          : meta.color === "amber"
+                          ? "bg-amber-50 border-amber-300 text-amber-800 dark:bg-amber-950/40 dark:border-amber-700 dark:text-amber-300"
+                          : "bg-purple-50 border-purple-300 text-purple-800 dark:bg-purple-950/40 dark:border-purple-700 dark:text-purple-300"
+                        : "bg-card border-border/60 text-muted-foreground hover:bg-muted/50"
+                    )}
+                  >
+                    <span className="font-semibold text-base">{level}</span>
+                    <span className="text-xs opacity-70">{meta.desc}</span>
                   </button>
                 );
               })}
