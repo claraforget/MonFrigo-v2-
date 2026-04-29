@@ -1,8 +1,9 @@
 import { useGetShoppingList, useGetNearbyStores } from "@workspace/api-client-react";
 import { Card, Button, Badge } from "@/components/ui-elements";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { ShoppingBag, MapPin, Store, Navigation, CheckCircle2, Circle } from "lucide-react";
+import { ShoppingBag, MapPin, Store, Navigation, CheckCircle2, Circle, Download } from "lucide-react";
 import { motion } from "framer-motion";
+import jsPDF from "jspdf";
 
 export default function ShoppingPage() {
   const { data: list, isLoading: isListLoading } = useGetShoppingList();
@@ -21,12 +22,101 @@ export default function ShoppingPage() {
     return acc;
   }, {} as Record<string, typeof list>) || {};
 
+  // Items still to buy (not already in fridge)
+  const itemsToBuy = list?.filter(i => !i.inFridge) ?? [];
+
+  const downloadPDF = () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageW = 210;
+    const marginL = 18;
+    const marginR = 18;
+    const contentW = pageW - marginL - marginR;
+    let y = 20;
+
+    // ── Header ──
+    doc.setFillColor(34, 197, 94); // green-500
+    doc.rect(0, 0, pageW, 14, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text("FrigoMenu — Liste d'épicerie", marginL, 9);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(new Date().toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" }), pageW - marginR, 9, { align: "right" });
+
+    y = 24;
+    doc.setTextColor(40, 40, 40);
+
+    // ── Summary ──
+    const totalEst = itemsToBuy.reduce((s, i) => s + (Number(i.estimatedPrice) || 0), 0);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`${itemsToBuy.length} article${itemsToBuy.length > 1 ? "s" : ""} à acheter  ·  Total estimé : ${totalEst.toFixed(2)} $`, marginL, y);
+    y += 8;
+
+    // ── Group by category, skip inFridge ──
+    const grouped: Record<string, typeof itemsToBuy> = {};
+    for (const item of itemsToBuy) {
+      if (!grouped[item.category]) grouped[item.category] = [];
+      grouped[item.category].push(item);
+    }
+
+    for (const [category, items] of Object.entries(grouped)) {
+      // Category header
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.setFillColor(240, 253, 244); // light green tint
+      doc.roundedRect(marginL - 2, y - 4, contentW + 4, 9, 2, 2, "F");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(22, 101, 52); // green-800
+      doc.text(category.toUpperCase(), marginL + 2, y + 1.5);
+      y += 10;
+
+      for (const item of items) {
+        if (y > 275) { doc.addPage(); y = 20; }
+        // Checkbox
+        doc.setDrawColor(160, 160, 160);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(marginL, y - 3.5, 4, 4, 0.5, 0.5);
+        // Item name
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 30, 30);
+        doc.text(item.name, marginL + 7, y);
+        // Quantity
+        doc.setTextColor(80, 80, 80);
+        doc.text(`${item.quantity} ${item.unit}`, pageW - marginR - 28, y, { align: "right" });
+        // Price
+        if (item.estimatedPrice) {
+          doc.setTextColor(120, 120, 120);
+          doc.text(`~${Number(item.estimatedPrice).toFixed(2)} $`, pageW - marginR, y, { align: "right" });
+        }
+        y += 7.5;
+      }
+      y += 3; // gap between categories
+    }
+
+    // ── Footer ──
+    doc.setFontSize(8);
+    doc.setTextColor(160, 160, 160);
+    doc.text("Généré par FrigoMenu · frigomenu.ca", pageW / 2, 290, { align: "center" });
+
+    doc.save("liste-epicerie-frigomenu.pdf");
+  };
+
   return (
     <div className="grid lg:grid-cols-12 gap-10 pb-12 pt-4">
       {/* LEFT COL: Shopping List */}
       <div className="lg:col-span-7 space-y-8">
-        <div className="flex items-center gap-4 mb-10 no-print">
+        <div className="flex items-center justify-between gap-4 mb-10 no-print">
           <h1 className="text-4xl font-display font-bold text-foreground">Liste d'épicerie</h1>
+          {itemsToBuy.length > 0 && (
+            <Button variant="outline" size="sm" onClick={downloadPDF} className="shrink-0">
+              <Download className="w-4 h-4 mr-2" />
+              Télécharger PDF
+            </Button>
+          )}
         </div>
 
         {isListLoading ? (

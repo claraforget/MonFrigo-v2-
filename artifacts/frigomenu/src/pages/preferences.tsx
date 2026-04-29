@@ -2,11 +2,15 @@ import { useState, useEffect } from "react";
 import { useGetPreferences, useSavePreferences } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, Button, Input, Label } from "@/components/ui-elements";
-import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink, UtensilsCrossed, BarChart2 } from "lucide-react";
+import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink, UtensilsCrossed, BarChart2, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui-elements";
 import { useUser, useAuth } from "@clerk/react";
 import { usePaywall } from "@/hooks/usePaywall";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ALLERGIES = ["Gluten", "Arachides", "Lactose", "Œufs", "Fruits de mer", "Noix", "Soja", "Sésame"];
 const DIETS = [
@@ -67,7 +71,9 @@ function SubscriptionCard() {
   const { getToken } = useAuth();
   const paywall = usePaywall();
   const [loading, setLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cancelAt, setCancelAt] = useState<string | null>(null);
 
   const openPortal = async () => {
     setLoading(true);
@@ -83,11 +89,7 @@ function SubscriptionCard() {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({
-          email,
-          userId: user?.id,
-          returnUrl: window.location.href,
-        }),
+        body: JSON.stringify({ email, userId: user?.id, returnUrl: window.location.href }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? `Erreur ${res.status}`);
@@ -99,7 +101,34 @@ function SubscriptionCard() {
     }
   };
 
+  const cancelSubscription = async () => {
+    setCancelLoading(true);
+    setError(null);
+    try {
+      const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+      const token = await getToken();
+      const res = await fetch(`${apiBase}/api/stripe/cancel-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error ?? `Erreur ${res.status}`);
+      setCancelAt(j.cancelAt);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erreur lors de l'annulation");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   if (!paywall.isSubscribed) return null;
+
+  const formattedCancelAt = cancelAt
+    ? new Date(cancelAt).toLocaleDateString("fr-CA", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <Card className="p-8 bg-gradient-to-br from-primary/8 to-secondary/8 border-primary/20">
@@ -109,19 +138,57 @@ function SubscriptionCard() {
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-xl font-display font-bold">Abonnement Premium actif</h3>
-          <p className="text-muted-foreground text-sm mt-1.5">
-            Gérez votre méthode de paiement, consultez vos factures ou annulez votre abonnement à tout moment via le portail sécurisé Stripe.
-          </p>
+
+          {cancelAt ? (
+            <div className="mt-3 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm rounded-xl p-4 flex items-start gap-3">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>Annulation planifiée. Votre accès Premium reste actif jusqu'au <strong>{formattedCancelAt}</strong>, après quoi votre compte redeviendra gratuit.</p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm mt-1.5">
+              Gérez votre paiement ou annulez votre abonnement. Le mois en cours reste valable jusqu'à la fin de la période de facturation.
+            </p>
+          )}
+
           {error && (
             <div className="mt-3 bg-destructive/10 text-destructive text-sm rounded-xl p-3">
               {error}
             </div>
           )}
-          <div className="mt-5">
+
+          <div className="mt-5 flex flex-wrap gap-3">
             <Button onClick={openPortal} disabled={loading} variant="outline">
               <ExternalLink className="w-4 h-4 mr-2" />
               {loading ? "Ouverture..." : "Gérer mon abonnement"}
             </Button>
+
+            {!cancelAt && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10">
+                    Annuler l'abonnement
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Annuler l'abonnement Premium ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Votre accès Premium restera actif jusqu'à la fin de la période de facturation en cours. Aucun remboursement n'est effectué pour les jours restants.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Garder mon abonnement</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={cancelSubscription}
+                      disabled={cancelLoading}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {cancelLoading ? "Annulation..." : "Confirmer l'annulation"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </div>
       </div>

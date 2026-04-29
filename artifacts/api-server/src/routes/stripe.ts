@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import Stripe from "stripe";
 import { logger } from "../lib/logger";
+import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -141,6 +142,66 @@ router.post("/stripe/create-portal-session", async (req, res) => {
     return res.json({ url: portal.url });
   } catch (err) {
     logger.error({ err }, "Stripe portal session error");
+    const msg = err instanceof Error ? err.message : "Erreur inconnue";
+    return res.status(500).json({ error: msg });
+  }
+});
+
+router.post("/stripe/cancel-subscription", requireAuth, async (req, res) => {
+  if (!stripe) {
+    return res.status(500).json({ error: "Stripe non configuré" });
+  }
+
+  const userId = (req as AuthedRequest).userId;
+
+  try {
+    // Find active subscription by userId in metadata
+    let sub: Stripe.Subscription | undefined;
+
+    try {
+      const subs = await stripe.subscriptions.search({
+        query: `metadata['userId']:'${userId}' status:'active'`,
+        limit: 1,
+      });
+      sub = subs.data[0];
+    } catch {
+      // search might not be available on all Stripe plans — fallback via sessions
+    }
+
+    if (!sub) {
+      // Fallback: find via checkout sessions
+      const sessions = await stripe.checkout.sessions.list({ limit: 100 });
+      const match = sessions.data.find(
+        (s) => s.client_reference_id === userId && s.subscription
+      );
+      if (match?.subscription) {
+        const subId = typeof match.subscription === "string" ? match.subscription : match.subscription.id;
+        sub = await stripe.subscriptions.retrieve(subId);
+      }
+    }
+
+    if (!sub || sub.status !== "active") {
+      return res.status(404).json({ error: "Aucun abonnement actif trouvé" });
+    }
+
+    if (sub.cancel_at_period_end) {
+      // Already scheduled for cancellation — return the existing date
+      return res.json({
+        cancelAt: new Date(sub.current_period_end * 1000).toISOString(),
+        alreadyScheduled: true,
+      });
+    }
+
+    const updated = await stripe.subscriptions.update(sub.id, {
+      cancel_at_period_end: true,
+    });
+
+    const cancelAt = new Date(updated.current_period_end * 1000).toISOString();
+    logger.info({ userId, cancelAt }, "Subscription scheduled for cancellation");
+
+    return res.json({ cancelAt });
+  } catch (err) {
+    logger.error({ err }, "Cancel subscription error");
     const msg = err instanceof Error ? err.message : "Erreur inconnue";
     return res.status(500).json({ error: msg });
   }
