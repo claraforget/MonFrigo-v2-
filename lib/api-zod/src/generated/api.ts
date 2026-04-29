@@ -145,6 +145,7 @@ const MealSchema = zod.object({
   ingredients: zod.array(zod.string()),
   instructions: zod.array(zod.string()),
   estimatedCost: zod.number(),
+  difficultyLevel: zod.enum(["Facile", "Moyen", "Avancé"]).optional(),
 }).nullish();
 
 const DaySchema = zod.object({

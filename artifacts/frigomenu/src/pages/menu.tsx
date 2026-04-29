@@ -26,10 +26,21 @@ function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Mea
           <span className="font-bold text-muted-foreground w-20 uppercase tracking-widest text-[10px] sm:text-xs">{title}</span>
           <span className="font-semibold text-foreground text-sm sm:text-base">{meal.name}</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Badge variant="outline" className="hidden sm:flex whitespace-nowrap bg-background/50 border-none">
             <Clock className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> {meal.cookingTime} min
           </Badge>
+          {meal.difficultyLevel && (
+            <span className={`hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${
+              meal.difficultyLevel === "Facile"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
+                : meal.difficultyLevel === "Moyen"
+                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800"
+                : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800"
+            }`}>
+              {meal.difficultyLevel}
+            </span>
+          )}
           <div className={`p-1.5 rounded-full transition-colors no-print ${isOpen ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground'}`}>
             <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
           </div>

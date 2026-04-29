@@ -110,20 +110,34 @@ PROFIL:
 REPAS À GÉNÉRER: ${mealsToGenerate}. Tout autre repas = null.
 
 RÈGLES NUTRITIONNELLES (OBLIGATOIRES):
-- Minimum 20 g de protéines par portion dans chaque recette (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage ou des glucides)
-- Maximum 2000 mg de sodium par jour au total — limiter les sauces salées, charcuteries, fromages en grande quantité; privilégier les épices, fines herbes et jus de citron pour rehausser les saveurs
-- Chaque recette doit inclure des légumes variés et colorés (ou un fruit le matin au déjeuner)
-- Chaque repas principal doit inclure un féculent (riz, quinoa, pâtes de blé entier, patate douce, pain de grains entiers, etc.) ou mentionner un accompagnement suggéré dans la description
+- Minimum 20 g de protéines par portion (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage ou glucides seuls)
+- Maximum 2000 mg de sodium par jour — éviter sauces en bouteille, charcuteries; privilégier épices, fines herbes, jus de citron
+- Chaque recette inclut des légumes variés et colorés (ou un fruit au déjeuner matin)
+- Chaque repas principal inclut un féculent (riz, quinoa, pâtes de blé entier, patate douce, pain de grains entiers) ou un accompagnement suggéré dans la description
+- Minimum 2 repas végétariens riches en protéines et 1 repas de poisson dans la semaine
+
+SAVEUR ET SOPHISTICATION:
+- Utiliser des techniques qui développent la saveur : saisir à feu vif pour créer une croûte, déglacer pour récupérer les sucs, faire revenir l'ail et les épices dans le gras avant d'ajouter les liquides
+- Équilibre acide-gras-sel-umami : toujours finir avec un élément acide (jus de citron, vinaigre), une touche de gras (huile d'olive, beurre) et une profondeur umami (miso, parmesan, champignons, tamari)
+- Contraste de textures dans chaque plat : croquant vs fondant, frais vs chaud
+- Noms de recettes créatifs et appétissants (ex: "Saumon à la croûte de pistaches, purée de chou-fleur au citron" plutôt que "Saumon avec chou-fleur")
+- S'adapter au temps disponible (${preferences.cookingTimePerDay} min/jour) : semaine = techniques rapides mais savoureuses; weekend = techniques plus élaborées si le temps le permet
+
+NIVEAU DE DIFFICULTÉ (champ "difficultyLevel") — choisir selon technique et temps:
+- "Facile" : techniques de base, ≤ 25 min, aucun équipement spécial (salade, sauté rapide, bol assemblé)
+- "Moyen" : 2-3 techniques simultanées, 25-40 min, attention requise (rôtissage, sauce réduite, marinade)
+- "Avancé" : techniques avancées ou > 40 min (braiser, confit, croûte, sauce complexe, temps de repos)
+
+AUTRES RÈGLES:
 - Aucune recette répétée dans la semaine
 - Varier les sources de protéines chaque jour
 - Utiliser en priorité les ingrédients du frigo
-- Instructions: 3-4 étapes précises avec quantités et temps (ex: "Chauffer 1 c.s. d'huile à feu vif, saisir le poulet 3 min par côté jusqu'à doré")
+- Instructions: 3-4 étapes précises avec quantités et temps
 - Ingrédients: format "quantité + unité + ingrédient" (ex: "200 g de poitrine de poulet")
-- description: 1 phrase appétissante
-- Minimum 2 repas végétariens (riches en protéines) et 1 repas de poisson dans la semaine
+- description: 1 phrase évocatrice qui donne envie
 
 Réponds SEULEMENT avec ce JSON (sans markdown):
-{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":4.50},"lunch":{"name":"...","description":"...","cookingTime":20,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":6.00},"dinner":{"name":"...","description":"...","cookingTime":30,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":9.00}},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}
+{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":4.50,"difficultyLevel":"Facile"},"lunch":{"name":"...","description":"...","cookingTime":20,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":6.00,"difficultyLevel":"Moyen"},"dinner":{"name":"...","description":"...","cookingTime":30,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":9.00,"difficultyLevel":"Avancé"}},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}
 Les repas non demandés sont null. Inclure les 7 jours.`;
 
   res.setHeader("Content-Type", "text/event-stream");

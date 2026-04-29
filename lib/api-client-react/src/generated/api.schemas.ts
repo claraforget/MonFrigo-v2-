@@ -76,6 +76,7 @@ export interface Meal {
   ingredients: string[];
   instructions: string[];
   estimatedCost: number;
+  difficultyLevel?: "Facile" | "Moyen" | "Avancé";
 }
 
 export interface DayMenu {
