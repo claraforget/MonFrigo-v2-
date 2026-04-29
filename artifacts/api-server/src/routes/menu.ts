@@ -115,9 +115,11 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
       lunch: "dîner (midi)",
       dinner: "souper (soir)",
     };
-    const mealsToGenerate = selectedMeals
-      .map((k) => mealLabels[k] ?? k)
-      .join(", ");
+    // Build explicit per-field JSON instructions so the model never guesses
+    const allFields = ["breakfast", "lunch", "dinner"] as const;
+    const fieldDirectives = allFields
+      .map((f) => `"${f}": ${selectedMeals.includes(f) ? "RECETTE (obligatoire, jamais null)" : "null (non demandé)"}`)
+      .join(" | ");
 
     const ingredientList = ingredients.length > 0
       ? ingredients.map(i => `${i.name} (${i.quantity} ${i.unit})`).join(", ")
@@ -131,50 +133,44 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     const regimeStr = (preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun";
     const cuisinesStr = (preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées";
 
-    const prompt = `Tu es un chef cuisinier expert. Crée un menu de 7 jours pour ${N} personne(s) avec des recettes savoureuses et bien assaisonnées. Seed:${seed}.
+    const prompt = `Tu es un chef cuisinier expert. Génère un menu de 7 jours savoureux et bien assaisonné pour ${N} personne(s). Seed:${seed}.
 
-PROFIL UTILISATEUR:
-- Budget: ${preferences.weeklyBudget}$ CAD/sem | Temps: ${preferences.cookingTimePerDay} min/jour
-- Allergies STRICTES (ne jamais inclure): ${allergiesStr}
-- Régime: ${regimeStr} | Cuisines: ${cuisinesStr}
-- Ingrédients au frigo à utiliser en priorité: ${ingredientList}
+PROFIL:
+- Budget: ${preferences.weeklyBudget}$ CAD/sem | Temps max: ${preferences.cookingTimePerDay} min/jour
+- Allergies STRICTES: ${allergiesStr} | Régime: ${regimeStr} | Cuisines: ${cuisinesStr}
+- Frigo: ${ingredientList}
 
-REPAS À GÉNÉRER: ${mealsToGenerate}. Repas non demandés = JSON null.
+REPAS REQUIS PAR JOUR (7 jours, Lundi à Dimanche):
+${fieldDirectives}
+CRITIQUE: Ne jamais mettre null pour un repas marqué "obligatoire". Chaque jour doit avoir exactement les champs ci-dessus.
 
-NIVEAU: ${diff} (Facile ≤25 min / Moyen 25-45 min / Avancé 45+ min). Varie un peu pour éviter la monotonie.
+NIVEAU: ${diff} | Facile ≤25 min · Moyen 25-45 min · Avancé 45+ min. Varie légèrement.
 
-RÈGLES DE QUALITÉ — C'EST CRUCIAL:
-Les recettes DOIVENT avoir des épices, herbes et assaisonnements précis. Jamais de recette fade.
-Exemples de bonnes recettes à imiter:
-• "Tofu croustillant au tamari-gingembre, bok choy sauté et riz jasmin" — protéine: tofu mariné tamari+gingembre+ail, cuit à feu vif pour croûte dorée
-• "Saumon poché lait de coco et curry rouge, riz basmati à la citronnelle" — épices: pâte curry rouge, lait de coco, zeste lime, coriandre fraîche
-• "Tempeh sauté sauce miso-érable, brocoli caramélisé, quinoa aux herbes" — marinade: miso blanc, sirop d'érable, vinaigre de riz, flocons de chili
-• "Poulet tikka masala maison, naan grillé" — épices: garam masala, cumin, coriandre, paprika fumé, gingembre frais, yogourt grec
-• "Bowl méditerranéen au poulet zaatar, houmous, tabboulé" — épices: zaatar, sumac, persil, citron confit
+═══ RÈGLES PAR TYPE DE REPAS ═══
+
+DÉJEUNER (breakfast) = repas du matin rapide et nutritif:
+• Format compact: 4-5 ingrédients, 2 étapes, description 10 mots max
+• Exemples: bol de gruau banane-beurre d'amande-cannelle | toast avocat-œuf poché-flocons de chili | smoothie bowl mangue-gingembre-graines de chia | omelette feta-épinards-herbes fraîches | yogourt grec-granola-fruits rouges-miel
+
+DÎNER (lunch, midi) = repas froid/tiède facile à préparer à l'avance ou apporter:
+• Format compact: 5-6 ingrédients, 2-3 étapes, description 12 mots max
+• TYPES OBLIGATOIRES: sandwich, wrap, salade-repas, bol froid, pita, bento ou soupe+pain — PAS un sauté chaud de restaurant
+• Exemples: wrap de poulet pesto-tomates séchées-roquette | sandwich thon-avocat-câpres sur pain de seigle | bol de quinoa poulet-feta-olives-citron | salade de lentilles aux herbes et vinaigrette moutarde | pita falafels-houmous-taboulé | bento saumon-riz-crudités-sésame
+
+SOUPER (dinner) = repas principal chaud, savoureux et bien assaisonné:
+• Format riche: 7-8 ingrédients, 3 étapes précises, description 15-20 mots
+• Épices/herbes obligatoires (ex: cumin, paprika fumé, zaatar, gingembre, coriandre, garam masala, tamari)
+• Exemples inspirants: tofu croustillant tamari-gingembre + bok choy + riz jasmin | saumon poché lait de coco-curry rouge + basmati | tempeh miso-érable + brocoli caramélisé + quinoa | poulet tikka masala maison + naan | bowl zaatar-sumac poulet + houmous
 
 RÈGLES NUTRITIONNELLES:
-- Aucune recette répétée, varier protéines chaque jour (poulet, bœuf, poisson, crevettes, tofu, tempeh, lentilles, pois chiches, œufs)
-- ≥20g protéines/portion; légumes colorés + féculent à chaque repas principal
-- Min 2 végétariens (riches en protéines) + 1 poisson dans la semaine
+- Aucune recette répétée dans la semaine; alterner protéines chaque jour
+- ≥20g protéines/portion pour déjeuner/souper; légumes colorés + féculent aux repas principaux
+- Min 2 soupers végétariens riches en protéines + 1 souper poisson; utiliser le frigo en priorité
 
-INGRÉDIENTS — INCLURE OBLIGATOIREMENT:
-1. Protéine principale avec quantité précise (ex: "400 g de cuisse de poulet désossée", "250 g de tempeh", "300 g de filet de saumon")
-2. Légume(s) principaux avec quantité (ex: "2 tasses de brocoli en fleurettes", "1 poivron rouge tranché")
-3. Féculent (ex: "200 g de riz basmati", "150 g de quinoa rouge", "200 g de pâtes de blé entier")
-4. Aromatics: ail, oignon, échalote, gingembre frais (ex: "3 gousses d'ail émincées", "1 c. à soupe de gingembre frais râpé")
-5. Épices/herbes PRÉCISES (ex: "1 c. à thé de cumin moulu", "1/2 c. à thé de paprika fumé", "2 c. à soupe de zaatar")
-6. Sauce/liquide/gras (ex: "2 c. à soupe de tamari", "400 ml de lait de coco", "2 c. à soupe d'huile d'olive extra vierge")
-7. Élément acide ou umami final (ex: "jus de 1 citron", "2 c. à soupe de vinaigre balsamique", "30 g de parmesan râpé")
-Liste 7 à 9 ingrédients par recette.
-
-INSTRUCTIONS: 3 étapes précises avec techniques, temps et températures.
-DESCRIPTION: 1 phrase appétissante de 15-25 mots.
-NOM: créatif et spécifique (inclure technique ou épice distinctive).
-
-RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — aucun texte avant ou après, aucun bloc markdown.
-Structure: {"days":[{"dayName":"Lundi","breakfast":RECETTE_OU_null,"lunch":RECETTE_OU_null,"dinner":RECETTE_OU_null},... 7 jours Lundi-Dimanche ...],"estimatedCost":number}
-Chaque recette: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["...","...","..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
-Commence par { directement.`;
+RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — zéro texte avant ou après, zéro markdown.
+Format: {"days":[{"dayName":"Lundi","breakfast":...,"lunch":...,"dinner":...}, ×7 jours],"estimatedCost":number}
+Chaque recette: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
+Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
 
 
     const { client: openai, model } = getOpenAI();
