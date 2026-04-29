@@ -93,6 +93,8 @@ export default function MenuPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const prevMenuIdRef = useRef<number | null | undefined>(undefined);
+  const pendingCountRef = useRef(false);
 
   // Détecte le retour de Stripe (?paid=true) et active l'abonnement
   useEffect(() => {
@@ -105,10 +107,27 @@ export default function MenuPage() {
     }
   }, []);
 
+  // Décrémenter le compteur quand un NOUVEAU menu apparaît en DB (fiable même si SSE est coupé)
+  useEffect(() => {
+    const currentId = data?.menu?.id ?? null;
+    if (prevMenuIdRef.current === undefined) {
+      // Premier chargement — initialiser sans incrémenter
+      prevMenuIdRef.current = currentId;
+      return;
+    }
+    if (pendingCountRef.current && currentId !== null && currentId !== prevMenuIdRef.current) {
+      paywall.incrementCount();
+      pendingCountRef.current = false;
+    }
+    prevMenuIdRef.current = currentId;
+  }, [data?.menu?.id]);
+
   const generateMenuSSE = useCallback(async () => {
     setIsGenerating(true);
     setGenerateError(null);
+    pendingCountRef.current = true;
     abortRef.current = new AbortController();
+    let gotError = false;
     try {
       const token = await getToken();
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
@@ -137,22 +156,34 @@ export default function MenuPage() {
           if (!line.startsWith("data:")) continue;
           const json = line.slice(5).trim();
           if (!json) continue;
-          const event = JSON.parse(json);
-          if (event.status === "done") {
-            queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] });
-            paywall.incrementCount();
-          } else if (event.status === "error") {
-            setGenerateError(event.message ?? "Erreur de génération");
+          try {
+            const event = JSON.parse(json);
+            if (event.status === "error") {
+              gotError = true;
+              setGenerateError(event.message ?? "Erreur de génération");
+            }
+          } catch {
+            // chunk JSON invalide — ignorer
           }
         }
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.name === "AbortError") return;
+      if (err instanceof Error && err.name === "AbortError") {
+        pendingCountRef.current = false;
+        return;
+      }
+      gotError = true;
       setGenerateError("Impossible de générer le menu. Réessayez.");
     } finally {
       setIsGenerating(false);
+      if (gotError) {
+        pendingCountRef.current = false;
+      } else {
+        // Toujours rafraîchir — le menu peut être prêt même si la connexion SSE a été coupée
+        queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] });
+      }
     }
-  }, [getToken, queryClient, paywall]);
+  }, [getToken, queryClient]);
 
   const handleGenerateClick = () => {
     paywall.checkAndGenerate(() => generateMenuSSE());

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useUser } from "@clerk/react";
 
 const FREE_GENERATIONS = 2;
@@ -19,38 +19,51 @@ export function usePaywall() {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
+  // Refs to always have fresh values in callbacks without stale closures
+  const countRef = useRef(count);
+  const userIdRef = useRef(userId);
+  const isSubscribedRef = useRef(isSubscribed);
+
+  useEffect(() => { countRef.current = count; }, [count]);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+  useEffect(() => { isSubscribedRef.current = isSubscribed; }, [isSubscribed]);
+
   useEffect(() => {
     if (!isLoaded) return;
     const k = keys(userId);
-    setCount(parseInt(localStorage.getItem(k.count) ?? "0", 10));
+    const stored = parseInt(localStorage.getItem(k.count) ?? "0", 10);
+    setCount(stored);
+    countRef.current = stored;
     setIsSubscribed(localStorage.getItem(k.sub) === "true");
   }, [isLoaded, userId]);
 
   const isBlocked = isLoaded && !isSubscribed && count >= FREE_GENERATIONS;
   const remainingFree = Math.max(0, FREE_GENERATIONS - count);
 
-  const incrementCount = () => {
-    const next = count + 1;
+  const incrementCount = useCallback(() => {
+    const next = countRef.current + 1;
     setCount(next);
-    localStorage.setItem(keys(userId).count, String(next));
-    if (!isSubscribed && next >= FREE_GENERATIONS) {
+    countRef.current = next;
+    localStorage.setItem(keys(userIdRef.current).count, String(next));
+    if (!isSubscribedRef.current && next >= FREE_GENERATIONS) {
       setShowPaywall(true);
     }
-  };
+  }, []);
 
-  const checkAndGenerate = (generate: () => void) => {
-    if (isBlocked) {
+  const checkAndGenerate = useCallback((generate: () => void) => {
+    if (isLoaded && !isSubscribedRef.current && countRef.current >= FREE_GENERATIONS) {
       setShowPaywall(true);
       return;
     }
     generate();
-  };
+  }, [isLoaded]);
 
-  const subscribe = () => {
+  const subscribe = useCallback(() => {
     setIsSubscribed(true);
-    localStorage.setItem(keys(userId).sub, "true");
+    isSubscribedRef.current = true;
+    localStorage.setItem(keys(userIdRef.current).sub, "true");
     setShowPaywall(false);
-  };
+  }, []);
 
   return {
     count,
