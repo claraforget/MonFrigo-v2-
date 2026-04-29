@@ -162,8 +162,12 @@ SOUPER (dinner) = repas principal chaud, savoureux et bien assaisonné:
 • Épices/herbes obligatoires (ex: cumin, paprika fumé, zaatar, gingembre, coriandre, garam masala, tamari)
 • Exemples inspirants: tofu croustillant tamari-gingembre + bok choy + riz jasmin | saumon poché lait de coco-curry rouge + basmati | tempeh miso-érable + brocoli caramélisé + quinoa | poulet tikka masala maison + naan | bowl zaatar-sumac poulet + houmous
 
+RÈGLES DE VARIÉTÉ — CRITIQUE:
+1. MÊME JOURNÉE: jamais le même ingrédient vedette (légume, protéine, féculent) dans deux repas du même jour. Si lunch=épinards → souper SANS épinards. Si lunch=poulet → souper SANS poulet. Si lunch=quinoa → souper SANS quinoa.
+2. JOURS CONSÉCUTIFS: distribuer les protéines et légumes sur la semaine — éviter le même légume principal 2 jours de suite, alterner les protéines (ex: poulet lundi → bœuf mardi → poisson mercredi → légumineuses jeudi...).
+3. DIVERSITÉ MAXIMUM: viser à n'utiliser le même ingrédient principal (épinards, brocoli, pois chiches, etc.) que 2 fois max sur la semaine entière.
+
 RÈGLES NUTRITIONNELLES:
-- Aucune recette répétée dans la semaine; alterner protéines chaque jour
 - ≥20g protéines/portion pour déjeuner/souper; légumes colorés + féculent aux repas principaux
 - Min 2 soupers végétariens riches en protéines + 1 souper poisson; utiliser le frigo en priorité
 
