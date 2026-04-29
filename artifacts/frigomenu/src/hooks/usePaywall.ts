@@ -19,7 +19,6 @@ export function usePaywall() {
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
   const [showPaywall, setShowPaywall] = useState(false);
 
-  // Refs to always have fresh values in callbacks without stale closures
   const countRef = useRef(count);
   const userIdRef = useRef(userId);
   const isSubscribedRef = useRef(isSubscribed);
@@ -31,6 +30,24 @@ export function usePaywall() {
   useEffect(() => {
     if (!isLoaded) return;
     const k = keys(userId);
+    const anonK = keys(null);
+
+    // Migration : si l'abonnement avait été sauvé sous la clé "anon" (bug de timing Clerk),
+    // le déplacer vers la vraie clé utilisateur.
+    if (userId && localStorage.getItem(anonK.sub) === "true") {
+      localStorage.setItem(k.sub, "true");
+      localStorage.removeItem(anonK.sub);
+    }
+
+    // Migration : idem pour le compteur "anon" → l'additionner à la clé utilisateur
+    const anonCount = parseInt(localStorage.getItem(anonK.count) ?? "0", 10);
+    if (userId && anonCount > 0) {
+      const userCount = parseInt(localStorage.getItem(k.count) ?? "0", 10);
+      const merged = Math.max(userCount, anonCount);
+      localStorage.setItem(k.count, String(merged));
+      localStorage.removeItem(anonK.count);
+    }
+
     const stored = parseInt(localStorage.getItem(k.count) ?? "0", 10);
     setCount(stored);
     countRef.current = stored;
@@ -65,6 +82,13 @@ export function usePaywall() {
     setShowPaywall(false);
   }, []);
 
+  // Permet de réinitialiser manuellement si besoin (ex: débogage)
+  const resetCount = useCallback(() => {
+    setCount(0);
+    countRef.current = 0;
+    localStorage.setItem(keys(userIdRef.current).count, "0");
+  }, []);
+
   return {
     count,
     isSubscribed,
@@ -75,5 +99,6 @@ export function usePaywall() {
     incrementCount,
     checkAndGenerate,
     subscribe,
+    resetCount,
   };
 }
