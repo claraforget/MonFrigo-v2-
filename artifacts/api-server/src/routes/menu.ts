@@ -14,8 +14,9 @@ const router: IRouter = Router();
 router.use(requireAuth);
 
 function getOpenAI(): { client: OpenAI; model: string } {
-  // Replit environment: use the built-in proxy (free)
-  if (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
+  // Replit environment: use built-in proxy ONLY if REPL_ID is present (true Replit env)
+  const onReplit = !!(process.env.REPL_ID || process.env.REPLIT_DEPLOYMENT_ID || process.env.REPL_SLUG);
+  if (onReplit && process.env.AI_INTEGRATIONS_OPENAI_BASE_URL && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
     return {
       client: new OpenAI({
         baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -24,15 +25,14 @@ function getOpenAI(): { client: OpenAI; model: string } {
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     };
   }
-  // Google Gemini: 1500 requêtes/jour gratuites, compte Google suffit
-  // Clé dispo sur https://aistudio.google.com/apikey
+  // Google Gemini: 1500 requêtes/jour gratuites — clé sur https://aistudio.google.com/apikey
   if (process.env.GEMINI_API_KEY) {
     return {
       client: new OpenAI({
         baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
         apiKey: process.env.GEMINI_API_KEY,
       }),
-      model: process.env.OPENAI_MODEL ?? "gemini-2.0-flash",
+      model: process.env.OPENAI_MODEL ?? "gemini-1.5-flash",
     };
   }
   // Groq: gratuit sans carte de crédit (https://console.groq.com)
