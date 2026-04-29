@@ -144,22 +144,30 @@ PROFIL:
 REPAS À INCLURE: ${mealsToGenerate}
 Les repas NON demandés doivent être exactement la valeur JSON null (pas de chaîne, pas d'objet vide).
 
-NIVEAU DE DIFFICULTÉ: ${diff}
-- Facile = ≤25 min, techniques de base
-- Moyen = 25-40 min, 2-3 techniques
-- Avancé = >40 min, techniques élaborées
+NIVEAU DE DIFFICULTÉ DEMANDÉ: ${diff}
+- Facile = ≤25 min, une seule technique (sauté, omelette, bol assemblé)
+- Moyen = 25-45 min, 2-3 techniques (poêlé + sauce, rôti + légumes, gratiné)
+- Avancé = 45+ min, techniques élaborées (braiser, confit, croûte de noix, sauce réduite, cuisson basse temp)
+Varie légèrement la difficulté pour éviter la monotonie (ex: si Moyen, quelques Facile le matin et Avancé le weekend).
 
-RÈGLES IMPORTANTES:
-1. Aucune recette répétée dans la semaine
-2. Varier les protéines chaque jour (viande, poisson, légumineuses, œufs, tofu)
-3. Au moins 20g de protéines par portion
-4. Chaque repas contient des légumes colorés et un féculent
-5. Au moins 2 repas végétariens et 1 repas de poisson dans la semaine
-6. Utiliser les ingrédients du frigo en priorité
-7. Noms de recettes créatifs et appétissants
-8. Max 5 ingrédients par recette (format: "quantité unité ingrédient")
-9. Exactement 2 étapes courtes par recette (max 15 mots chacune)
-10. Description: exactement 1 phrase (max 12 mots)
+QUALITÉ ET SOPHISTICATION DES RECETTES:
+- Noms CRÉATIFS et appétissants qui donnent envie: "Poulet rôti à la sumac, labneh au concombre et za'atar" plutôt que "Poulet aux épices"
+- Descriptions ÉVOCATRICES (20-30 mots) qui font saliver : textures, arômes, contraste, occasion
+- Techniques qui développent la saveur : saisir à feu vif, déglacer, caraméliser les oignons, torréfier les épices, monter une sauce au beurre
+- Équilibre acide-gras-umami-sel à chaque plat : citron ou vinaigre + huile ou beurre + parmesan, miso, tamari ou champignons
+- Contraste de textures : quelque chose de croquant (noix, panko, légumes crus) + quelque chose de fondant
+
+RÈGLES NUTRITIONNELLES:
+1. Aucune recette répétée dans la semaine; varier les protéines chaque jour
+2. Au moins 20g de protéines par portion (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage)
+3. Chaque repas principal : légumes colorés ET un féculent (riz, quinoa, pâtes blé entier, patate douce, pain grains entiers)
+4. Au moins 2 repas végétariens riches en protéines + 1 repas de poisson dans la semaine
+5. Utiliser les ingrédients du frigo en priorité
+
+FORMAT DES RECETTES:
+- ingredients: 6 à 9 ingrédients précis avec quantités (ex: "400 g de cuisse de poulet désossée", "2 c. à soupe de sumac", "1 boîte de 400 ml de lait de coco")
+- instructions: 3 à 4 étapes claires avec techniques, temps et températures (ex: "Saisir le poulet 4 min chaque côté à feu vif jusqu'à croûte dorée. Déglacer avec le vin blanc et laisser réduire 2 min.")
+- description: 1 phrase évocatrice de 20-30 mots qui décrit le plat, ses saveurs et sa texture
 
 RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — aucun texte avant ou après, aucun bloc markdown, aucune explication.
 
@@ -167,7 +175,7 @@ Structure JSON requise:
 - Racine: objet avec "days" (tableau de 7 objets) et "estimatedCost" (number)
 - Chaque élément de "days": objet avec "dayName" (string), "breakfast", "lunch", "dinner"
 - Les repas non demandés (voir REPAS À INCLURE ci-dessus): valeur JSON null (pas de string, pas d'objet vide)
-- Chaque recette: objet avec "name" (string), "description" (string), "cookingTime" (number en minutes), "servings" (number = ${N}), "ingredients" (tableau de strings), "instructions" (tableau de 2 strings), "estimatedCost" (number en dollars), "difficultyLevel" ("Facile" ou "Moyen" ou "Avancé")
+- Chaque recette: objet avec "name" (string), "description" (string), "cookingTime" (number en minutes), "servings" (number = ${N}), "ingredients" (tableau de strings), "instructions" (tableau de 3-4 strings), "estimatedCost" (number en dollars), "difficultyLevel" ("Facile" ou "Moyen" ou "Avancé")
 - Les 7 jours dans l'ordre: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche
 
 Commence ta réponse directement par le caractère { sans aucun texte, espace ou saut de ligne avant.`;
@@ -180,7 +188,7 @@ Commence ta réponse directement par le caractère { sans aucun texte, espace ou
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 4000,
+      max_tokens: 6000,
     });
 
     let fullContent = "";
