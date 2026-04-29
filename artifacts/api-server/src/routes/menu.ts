@@ -131,54 +131,50 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     const regimeStr = (preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun";
     const cuisinesStr = (preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées";
 
-    const prompt = `Tu es un chef cuisinier québécois. Génère un menu complet de 7 jours (Lundi à Dimanche) pour ${N} personne(s). Seed:${seed}.
+    const prompt = `Tu es un chef cuisinier expert. Crée un menu de 7 jours pour ${N} personne(s) avec des recettes savoureuses et bien assaisonnées. Seed:${seed}.
 
-PROFIL:
-- Budget: ${preferences.weeklyBudget}$ CAD/semaine
-- Temps max: ${preferences.cookingTimePerDay} min/jour
-- Allergies (STRICT — ne jamais inclure): ${allergiesStr}
-- Régime: ${regimeStr}
-- Cuisines préférées: ${cuisinesStr}
-- Ingrédients disponibles au frigo: ${ingredientList}
+PROFIL UTILISATEUR:
+- Budget: ${preferences.weeklyBudget}$ CAD/sem | Temps: ${preferences.cookingTimePerDay} min/jour
+- Allergies STRICTES (ne jamais inclure): ${allergiesStr}
+- Régime: ${regimeStr} | Cuisines: ${cuisinesStr}
+- Ingrédients au frigo à utiliser en priorité: ${ingredientList}
 
-REPAS À INCLURE: ${mealsToGenerate}
-Les repas NON demandés doivent être exactement la valeur JSON null (pas de chaîne, pas d'objet vide).
+REPAS À GÉNÉRER: ${mealsToGenerate}. Repas non demandés = JSON null.
 
-NIVEAU DE DIFFICULTÉ DEMANDÉ: ${diff}
-- Facile = ≤25 min, une seule technique (sauté, omelette, bol assemblé)
-- Moyen = 25-45 min, 2-3 techniques (poêlé + sauce, rôti + légumes, gratiné)
-- Avancé = 45+ min, techniques élaborées (braiser, confit, croûte de noix, sauce réduite, cuisson basse temp)
-Varie légèrement la difficulté pour éviter la monotonie (ex: si Moyen, quelques Facile le matin et Avancé le weekend).
+NIVEAU: ${diff} (Facile ≤25 min / Moyen 25-45 min / Avancé 45+ min). Varie un peu pour éviter la monotonie.
 
-QUALITÉ ET SOPHISTICATION DES RECETTES:
-- Noms CRÉATIFS et appétissants qui donnent envie: "Poulet rôti à la sumac, labneh au concombre et za'atar" plutôt que "Poulet aux épices"
-- Descriptions ÉVOCATRICES (20-30 mots) qui font saliver : textures, arômes, contraste, occasion
-- Techniques qui développent la saveur : saisir à feu vif, déglacer, caraméliser les oignons, torréfier les épices, monter une sauce au beurre
-- Équilibre acide-gras-umami-sel à chaque plat : citron ou vinaigre + huile ou beurre + parmesan, miso, tamari ou champignons
-- Contraste de textures : quelque chose de croquant (noix, panko, légumes crus) + quelque chose de fondant
+RÈGLES DE QUALITÉ — C'EST CRUCIAL:
+Les recettes DOIVENT avoir des épices, herbes et assaisonnements précis. Jamais de recette fade.
+Exemples de bonnes recettes à imiter:
+• "Tofu croustillant au tamari-gingembre, bok choy sauté et riz jasmin" — protéine: tofu mariné tamari+gingembre+ail, cuit à feu vif pour croûte dorée
+• "Saumon poché lait de coco et curry rouge, riz basmati à la citronnelle" — épices: pâte curry rouge, lait de coco, zeste lime, coriandre fraîche
+• "Tempeh sauté sauce miso-érable, brocoli caramélisé, quinoa aux herbes" — marinade: miso blanc, sirop d'érable, vinaigre de riz, flocons de chili
+• "Poulet tikka masala maison, naan grillé" — épices: garam masala, cumin, coriandre, paprika fumé, gingembre frais, yogourt grec
+• "Bowl méditerranéen au poulet zaatar, houmous, tabboulé" — épices: zaatar, sumac, persil, citron confit
 
 RÈGLES NUTRITIONNELLES:
-1. Aucune recette répétée dans la semaine; varier les protéines chaque jour
-2. Au moins 20g de protéines par portion (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage)
-3. Chaque repas principal : légumes colorés ET un féculent (riz, quinoa, pâtes blé entier, patate douce, pain grains entiers)
-4. Au moins 2 repas végétariens riches en protéines + 1 repas de poisson dans la semaine
-5. Utiliser les ingrédients du frigo en priorité
+- Aucune recette répétée, varier protéines chaque jour (poulet, bœuf, poisson, crevettes, tofu, tempeh, lentilles, pois chiches, œufs)
+- ≥20g protéines/portion; légumes colorés + féculent à chaque repas principal
+- Min 2 végétariens (riches en protéines) + 1 poisson dans la semaine
 
-FORMAT DES RECETTES:
-- ingredients: 6 à 9 ingrédients précis avec quantités (ex: "400 g de cuisse de poulet désossée", "2 c. à soupe de sumac", "1 boîte de 400 ml de lait de coco")
-- instructions: 3 à 4 étapes claires avec techniques, temps et températures (ex: "Saisir le poulet 4 min chaque côté à feu vif jusqu'à croûte dorée. Déglacer avec le vin blanc et laisser réduire 2 min.")
-- description: 1 phrase évocatrice de 20-30 mots qui décrit le plat, ses saveurs et sa texture
+INGRÉDIENTS — INCLURE OBLIGATOIREMENT:
+1. Protéine principale avec quantité précise (ex: "400 g de cuisse de poulet désossée", "250 g de tempeh", "300 g de filet de saumon")
+2. Légume(s) principaux avec quantité (ex: "2 tasses de brocoli en fleurettes", "1 poivron rouge tranché")
+3. Féculent (ex: "200 g de riz basmati", "150 g de quinoa rouge", "200 g de pâtes de blé entier")
+4. Aromatics: ail, oignon, échalote, gingembre frais (ex: "3 gousses d'ail émincées", "1 c. à soupe de gingembre frais râpé")
+5. Épices/herbes PRÉCISES (ex: "1 c. à thé de cumin moulu", "1/2 c. à thé de paprika fumé", "2 c. à soupe de zaatar")
+6. Sauce/liquide/gras (ex: "2 c. à soupe de tamari", "400 ml de lait de coco", "2 c. à soupe d'huile d'olive extra vierge")
+7. Élément acide ou umami final (ex: "jus de 1 citron", "2 c. à soupe de vinaigre balsamique", "30 g de parmesan râpé")
+Liste 7 à 9 ingrédients par recette.
 
-RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — aucun texte avant ou après, aucun bloc markdown, aucune explication.
+INSTRUCTIONS: 3 étapes précises avec techniques, temps et températures.
+DESCRIPTION: 1 phrase appétissante de 15-25 mots.
+NOM: créatif et spécifique (inclure technique ou épice distinctive).
 
-Structure JSON requise:
-- Racine: objet avec "days" (tableau de 7 objets) et "estimatedCost" (number)
-- Chaque élément de "days": objet avec "dayName" (string), "breakfast", "lunch", "dinner"
-- Les repas non demandés (voir REPAS À INCLURE ci-dessus): valeur JSON null (pas de string, pas d'objet vide)
-- Chaque recette: objet avec "name" (string), "description" (string), "cookingTime" (number en minutes), "servings" (number = ${N}), "ingredients" (tableau de strings), "instructions" (tableau de 3-4 strings), "estimatedCost" (number en dollars), "difficultyLevel" ("Facile" ou "Moyen" ou "Avancé")
-- Les 7 jours dans l'ordre: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche
-
-Commence ta réponse directement par le caractère { sans aucun texte, espace ou saut de ligne avant.`;
+RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — aucun texte avant ou après, aucun bloc markdown.
+Structure: {"days":[{"dayName":"Lundi","breakfast":RECETTE_OU_null,"lunch":RECETTE_OU_null,"dinner":RECETTE_OU_null},... 7 jours Lundi-Dimanche ...],"estimatedCost":number}
+Chaque recette: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["...","...","..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
+Commence par { directement.`;
 
 
     const { client: openai, model } = getOpenAI();
@@ -188,7 +184,7 @@ Commence ta réponse directement par le caractère { sans aucun texte, espace ou
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 6000,
+      max_tokens: 4096,
     });
 
     let fullContent = "";
