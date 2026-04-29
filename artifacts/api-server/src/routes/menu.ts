@@ -111,6 +111,7 @@ REPAS À GÉNÉRER: ${mealsToGenerate}. Tout autre repas = null.
 
 RÈGLES NUTRITIONNELLES (OBLIGATOIRES):
 - Minimum 20 g de protéines par portion dans chaque recette (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage ou des glucides)
+- Maximum 2000 mg de sodium par jour au total — limiter les sauces salées, charcuteries, fromages en grande quantité; privilégier les épices, fines herbes et jus de citron pour rehausser les saveurs
 - Chaque recette doit inclure des légumes variés et colorés (ou un fruit le matin au déjeuner)
 - Chaque repas principal doit inclure un féculent (riz, quinoa, pâtes de blé entier, patate douce, pain de grains entiers, etc.) ou mentionner un accompagnement suggéré dans la description
 - Aucune recette répétée dans la semaine
