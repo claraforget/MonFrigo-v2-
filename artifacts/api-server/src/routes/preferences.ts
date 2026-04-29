@@ -37,8 +37,18 @@ router.get("/preferences", async (req, res): Promise<void> => {
     prefs = created;
   }
 
+  // difficultyPreference stored as JSON string in text column; parse it back to array
+  let diffArr: string[];
+  try {
+    const parsed = JSON.parse(prefs.difficultyPreference);
+    diffArr = Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    diffArr = [prefs.difficultyPreference ?? "Moyen"];
+  }
+
   res.json(GetPreferencesResponse.parse({
     ...prefs,
+    difficultyPreference: diffArr,
     updatedAt: prefs.updatedAt.toISOString(),
   }));
 });
@@ -57,24 +67,40 @@ router.put("/preferences", async (req, res): Promise<void> => {
     .where(eq(userPreferencesTable.userId, userId))
     .limit(1);
 
+  // Serialize the difficulty array to JSON string for the text DB column
+  const dataToSave = {
+    ...parsed.data,
+    difficultyPreference: JSON.stringify(parsed.data.difficultyPreference),
+  };
+
   let prefs;
   if (existing) {
     const [updated] = await db
       .update(userPreferencesTable)
-      .set(parsed.data)
+      .set(dataToSave)
       .where(eq(userPreferencesTable.userId, userId))
       .returning();
     prefs = updated;
   } else {
     const [created] = await db
       .insert(userPreferencesTable)
-      .values({ ...parsed.data, userId })
+      .values({ ...dataToSave, userId })
       .returning();
     prefs = created;
   }
 
+  // Parse difficulty back to array for response
+  let diffArr: string[];
+  try {
+    const d = JSON.parse(prefs.difficultyPreference);
+    diffArr = Array.isArray(d) ? d : [d];
+  } catch {
+    diffArr = [prefs.difficultyPreference ?? "Moyen"];
+  }
+
   res.json(SavePreferencesResponse.parse({
     ...prefs,
+    difficultyPreference: diffArr,
     updatedAt: prefs.updatedAt.toISOString(),
   }));
 });

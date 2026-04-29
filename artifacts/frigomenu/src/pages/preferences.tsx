@@ -146,7 +146,7 @@ export default function PreferencesPage() {
     dietaryPreferences: [] as string[],
     cuisinePreferences: [] as string[],
     mealTypes: ["breakfast", "lunch", "dinner"] as string[],
-    difficultyPreference: "Moyen" as "Facile" | "Moyen" | "Avancé",
+    difficultyPreference: ["Moyen"] as ("Facile" | "Moyen" | "Avancé")[],
   });
 
   useEffect(() => {
@@ -161,7 +161,9 @@ export default function PreferencesPage() {
         mealTypes: pref.mealTypes && pref.mealTypes.length > 0
           ? pref.mealTypes
           : ["breakfast", "lunch", "dinner"],
-        difficultyPreference: (pref.difficultyPreference as "Facile" | "Moyen" | "Avancé") || "Moyen",
+        difficultyPreference: (Array.isArray(pref.difficultyPreference) && pref.difficultyPreference.length > 0
+          ? pref.difficultyPreference
+          : ["Moyen"]) as ("Facile" | "Moyen" | "Avancé")[],
       });
     }
   }, [pref]);
@@ -345,11 +347,11 @@ export default function PreferencesPage() {
               <h3 className="text-xl font-display font-bold">Niveau de cuisine</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
-              L'IA adaptera la complexité des recettes à votre niveau de confort en cuisine.
+              Sélectionnez un ou plusieurs niveaux — l'IA répartira les recettes entre vos choix.
             </p>
             <div className="flex flex-wrap gap-4">
               {(["Facile", "Moyen", "Avancé"] as const).map((level) => {
-                const isSelected = formData.difficultyPreference === level;
+                const isSelected = formData.difficultyPreference.includes(level);
                 const meta = {
                   Facile: { desc: "Techniques de base, ≤ 25 min", color: "emerald" },
                   Moyen: { desc: "2-3 techniques, 25-40 min", color: "amber" },
@@ -359,7 +361,15 @@ export default function PreferencesPage() {
                   <button
                     key={level}
                     type="button"
-                    onClick={() => setFormData({ ...formData, difficultyPreference: level })}
+                    onClick={() => {
+                      const current = formData.difficultyPreference;
+                      const next = current.includes(level)
+                        ? current.filter((l) => l !== level).length > 0
+                          ? current.filter((l) => l !== level)
+                          : current // keep at least one selected
+                        : [...current, level];
+                      setFormData({ ...formData, difficultyPreference: next as ("Facile" | "Moyen" | "Avancé")[] });
+                    }}
                     className={cn(
                       "flex flex-col items-start gap-1 px-6 py-4 rounded-2xl text-sm font-medium transition-all duration-200 border min-w-[130px]",
                       isSelected

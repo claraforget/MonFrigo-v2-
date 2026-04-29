@@ -104,7 +104,7 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
       dietaryPreferences: [] as string[],
       cuisinePreferences: [] as string[],
       mealTypes: ["breakfast", "lunch", "dinner"] as string[],
-      difficultyPreference: "Moyen",
+      difficultyPreference: "Moyen" as string | string[],
     };
 
     const selectedMeals = preferences.mealTypes && preferences.mealTypes.length > 0
@@ -128,7 +128,24 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     const seed = Math.floor(Math.random() * 1_000_000);
 
     const N = preferences.numberOfPeople;
-    const diff = preferences.difficultyPreference ?? "Moyen";
+    // Parse difficulty — DB stores either a plain string ("Moyen") or JSON array ('["Facile","Moyen"]')
+    let diffLevels: string[];
+    const rawDiff = preferences.difficultyPreference ?? "Moyen";
+    try {
+      const parsed = typeof rawDiff === "string" ? JSON.parse(rawDiff) : rawDiff;
+      diffLevels = Array.isArray(parsed) ? parsed : [String(parsed)];
+    } catch {
+      diffLevels = [String(rawDiff)];
+    }
+    const diffStr = diffLevels.join(", ");
+    const diffInstruction = diffLevels.length === 1
+      ? `TOUTES les recettes DOIVENT être de niveau "${diffLevels[0]}". Aucune exception.`
+      : `Distribuer équitablement entre les niveaux [${diffStr}]. Chaque niveau doit apparaître plusieurs fois dans la semaine.`;
+    const diffTimings = diffLevels.map(l =>
+      l === "Facile" ? "Facile = ≤25 min, 1 technique" :
+      l === "Moyen"  ? "Moyen = 25-45 min, 2-3 techniques" :
+                       "Avancé = 45+ min, techniques élaborées"
+    ).join(" · ");
     const allergiesStr = (preferences.allergies as string[]).length > 0 ? (preferences.allergies as string[]).join(", ") : "aucune";
     const regimeStr = (preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun";
     const cuisinesStr = (preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées";
@@ -144,7 +161,9 @@ REPAS REQUIS PAR JOUR (7 jours, Lundi à Dimanche):
 ${fieldDirectives}
 CRITIQUE: Ne jamais mettre null pour un repas marqué "obligatoire". Chaque jour doit avoir exactement les champs ci-dessus.
 
-NIVEAU: ${diff} | Facile ≤25 min · Moyen 25-45 min · Avancé 45+ min. Varie légèrement.
+NIVEAU DE DIFFICULTÉ — RESPECTER STRICTEMENT:
+${diffInstruction}
+Définitions: ${diffTimings}
 
 ═══ RÈGLES PAR TYPE DE REPAS ═══
 
@@ -159,8 +178,10 @@ DÎNER (lunch, midi) = repas froid/tiède facile à préparer à l'avance ou app
 
 SOUPER (dinner) = repas principal chaud, savoureux et bien assaisonné:
 • Format riche: 7-8 ingrédients, 3 étapes précises, description 15-20 mots
-• Épices/herbes obligatoires (ex: cumin, paprika fumé, zaatar, gingembre, coriandre, garam masala, tamari)
-• Exemples inspirants: tofu croustillant tamari-gingembre + bok choy + riz jasmin | saumon poché lait de coco-curry rouge + basmati | tempeh miso-érable + brocoli caramélisé + quinoa | poulet tikka masala maison + naan | bowl zaatar-sumac poulet + houmous
+• Épices/herbes obligatoires (ex: cumin, paprika fumé, zaatar, gingembre, coriandre, garam masala, tamari, harissa, sumac)
+• Protéines à varier (inclure des végétales!): poulet, bœuf, porc, agneau, saumon, crevettes, tilapia, morue ET tofu ferme, tempeh, seitan, lentilles, pois chiches, haricots noirs, edamame, œufs
+• Exemples végétaux inspirants: tofu croustillant tamari-sésame + bok choy sauté + riz jasmin | tempeh miso-érable + brocoli caramélisé + quinoa | curry rouge pois chiches-épinards + riz basmati | lentilles beluga sauce tomate-harissa + couscous | seitan grillé marinade chimichurri + patate douce rôtie | dhal de lentilles corail au lait de coco + naan grillé
+• Exemples avec protéines animales: saumon poché lait de coco-curry rouge + basmati à la citronnelle | poulet tikka masala maison + naan | bowl zaatar-sumac poulet + houmous + tabboulé | crevettes sautées à l'ail-citron-persil + linguines | agneau braisé aux épices marocaines + couscous
 
 RÈGLES DE VARIÉTÉ — CRITIQUE:
 1. MÊME JOURNÉE: jamais le même ingrédient vedette (légume, protéine, féculent) dans deux repas du même jour. Si lunch=épinards → souper SANS épinards. Si lunch=poulet → souper SANS poulet. Si lunch=quinoa → souper SANS quinoa.
