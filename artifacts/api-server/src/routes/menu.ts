@@ -97,72 +97,30 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
 
   const seed = Math.floor(Math.random() * 1_000_000);
 
-  const prompt = `Tu es un chef cuisinier québécois passionné, auteur de livres de recettes, et nutritionniste diplômé. Tu rédiges des menus hebdomadaires pour ${preferences.numberOfPeople} personne(s), comme si tu écrivais pour un blogue culinaire professionnel (style Trois fois par jour, Le Coup de Grâce, ou Mordu de Radio-Canada).
+  const prompt = `Tu es chef cuisinier québécois. Génère un menu de 7 jours pour ${preferences.numberOfPeople} personne(s). Seed: ${seed}.
 
-━━━ PROFIL DU FOYER ━━━
-• Temps max de cuisson par jour : ${preferences.cookingTimePerDay} min
-• Budget hebdomadaire : ${preferences.weeklyBudget} $ CAD
-• Nombre de personnes : ${preferences.numberOfPeople}
-• Allergies (STRICT — ne jamais inclure) : ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
-• Préférences alimentaires : ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucune restriction"}
-• Cuisines préférées : ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "toutes les cuisines du monde"}
-• Ingrédients disponibles au frigo : ${ingredientList}
+PROFIL:
+- Budget: ${preferences.weeklyBudget} $ CAD/semaine
+- Temps max/jour: ${preferences.cookingTimePerDay} min
+- Allergies (STRICT): ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
+- Préférences: ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucune"}
+- Cuisines: ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "variées"}
+- Ingrédients au frigo: ${ingredientList}
 
-━━━ REPAS À GÉNÉRER ━━━
-• Génère UNIQUEMENT : ${mealsToGenerate}
-• Pour tout repas NON listé ci-dessus : mettre null dans le JSON
+REPAS À GÉNÉRER: ${mealsToGenerate}. Tout autre repas = null.
 
-━━━ QUALITÉ DES RECETTES — CRITIQUE ━━━
-Chaque recette doit être PRÉCISE et ACTIONNABLE, comme dans un vrai livre de recettes. Interdit :
-✗ "Cuire le quinoa" → ✓ "Rincer 180 ml (3/4 tasse) de quinoa sous l'eau froide. Porter 360 ml d'eau salée à ébullition, ajouter le quinoa, couvrir et réduire à feu doux. Cuire 15 min jusqu'à absorption complète, puis retirer du feu et laisser gonfler 5 min à couvert."
-✗ "Assaisonner" → ✓ "Assaisonner de 1/2 c. à thé de sel kasher et d'un généreux tour de moulin à poivre."
-✗ "Chauffer l'huile" → ✓ "Chauffer 15 ml (1 c. à soupe) d'huile d'olive à feu moyen-vif dans une poêle en fonte jusqu'à ce qu'elle commence à frémir légèrement."
-✗ "Cuire jusqu'à doré" → ✓ "Saisir 3-4 minutes sans bouger, jusqu'à ce qu'une belle croûte dorée se forme et que la viande se détache naturellement de la poêle."
+RÈGLES:
+- Aucune recette répétée dans la semaine
+- Varier les protéines chaque jour
+- Utiliser en priorité les ingrédients du frigo
+- Instructions: 3-4 étapes précises avec quantités et temps (ex: "Chauffer 1 c.s. d'huile à feu vif, saisir le poulet 3 min par côté jusqu'à doré")
+- Ingrédients: format "quantité + unité + ingrédient" (ex: "200 g de poitrine de poulet")
+- description: 1 phrase appétissante
+- Minimum 2 repas végétariens et 1 repas de poisson dans la semaine
 
-RÈGLES D'OR pour les instructions :
-1. Chaque étape = UNE action concrète avec quantité, température, durée ET indice visuel/sensoriel
-2. Petits-déjeuners et dîners légers : 4-5 étapes. Plats principaux du souper : 5-7 étapes.
-3. Toujours préciser : format de coupe (en dés de 1 cm, émincé finement), température (feu vif/moyen/doux), durée exacte, et indice visuel de réussite
-4. Inclure au moins 1 astuce de chef par recette : "ne pas surcharger la poêle", "laisser reposer la viande 5 min", "déglacer avec 60 ml de bouillon"
-
-RÈGLES pour les ingrédients :
-• Format : "quantité précise + unité + ingrédient + précision si nécessaire" → ex: "200 g de poitrine de poulet, coupée en lanières de 2 cm", "2 gousses d'ail, hachées finement", "1 boîte (400 ml) de lait de coco léger"
-• Toujours inclure : huiles, épices, sel, poivre, herbes fraîches, garnitures
-
-━━━ ÉQUILIBRE NUTRITIONNEL (Guide alimentaire canadien) ━━━
-• Chaque repas principal : ½ légumes variés, ¼ protéines maigres, ¼ grains entiers
-• Minimum 2 repas de poisson/fruits de mer dans la semaine
-• Minimum 2 repas 100 % végétariens (tofu, légumineuses)
-• Favoriser grains entiers : quinoa, riz brun, épeautre, pâtes intégrales, avoine
-• Méthodes saines : vapeur, four, poché, sauté léger, grillé
-
-━━━ VARIÉTÉ (${totalRecipes} recettes uniques) ━━━
-• Aucune recette répétée dans la semaine
-• Varier les protéines chaque jour (pas la même 2 jours de suite)
-• Varier les cuisines : québécoise revisitée, méditerranéenne, asiatique, mexicaine, etc.
-• Petits-déjeuners : alterner sucré/salé, chaud/froid, rapide/élaboré
-• Inclure 1-2 plats québécois revisités en version santé (bol de bouillon, cipâte léger, tartine de fromage en grains, etc.)
-• Graine créative de la semaine : ${seed} — chaque semaine doit être unique
-
-━━━ PRIORITÉS PRATIQUES ━━━
-• Utiliser EN PRIORITÉ les ingrédients du frigo (réduire le gaspillage)
-• Jours de semaine : recettes ≤ 35 min, simples et rapides
-• Weekend : recettes plus élaborées, techniques ou festives
-• Répartir intelligemment le budget sur la semaine
-
-Réponds UNIQUEMENT avec un objet JSON valide respectant exactement cette structure (sans markdown, sans texte autour) :
-{
-  "days": [
-    {
-      "dayName": "Lundi",
-      "breakfast": { "name": "...", "description": "...", "cookingTime": 15, "servings": ${preferences.numberOfPeople}, "ingredients": ["quantité + ingrédient précis", "..."], "instructions": ["étape détaillée 1", "étape détaillée 2", "..."], "estimatedCost": 4.50 },
-      "lunch": { "name": "...", "description": "...", "cookingTime": 20, "servings": ${preferences.numberOfPeople}, "ingredients": ["..."], "instructions": ["..."], "estimatedCost": 6.00 },
-      "dinner": { "name": "...", "description": "...", "cookingTime": 30, "servings": ${preferences.numberOfPeople}, "ingredients": ["..."], "instructions": ["..."], "estimatedCost": 9.00 }
-    }
-  ],
-  "estimatedCost": 115.00
-}
-Les 7 jours dans l'ordre : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche. Repas non demandés = null.`;
+Réponds SEULEMENT avec ce JSON (sans markdown):
+{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":4.50},"lunch":{"name":"...","description":"...","cookingTime":20,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":6.00},"dinner":{"name":"...","description":"...","cookingTime":30,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":9.00}},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}
+Les repas non demandés sont null. Inclure les 7 jours.`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -180,13 +138,11 @@ Les 7 jours dans l'ordre : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
     const { client: openai, model } = getOpenAI();
     req.log.info({ model }, "Generating menu with model");
 
-    const isGroq = !!(process.env.GROQ_API_KEY && !process.env.REPL_ID);
     const stream = await openai.chat.completions.create({
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 12000,
-      ...(isGroq ? { response_format: { type: "json_object" as const } } : {}),
+      max_tokens: 8000,
     });
 
     let fullContent = "";
@@ -261,10 +217,10 @@ Les 7 jours dans l'ordre : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
         : `Erreur 400 de ${provider} — clé incorrecte ou modèle invalide.`;
     } else if (errStatus === 429) {
       userMsg = "Limite de quota atteinte — réessayez dans quelques instants.";
-    } else if (errMsg.includes("No JSON") || errMsg.includes("JSON")) {
-      userMsg = "La réponse IA n'est pas au bon format — réessayez.";
+    } else if (errMsg.includes("No JSON") || errMsg.toLowerCase().includes("json") || errMsg.includes("parse") || errMsg.includes("Unexpected")) {
+      userMsg = `Format invalide — réessayez dans quelques secondes.`;
     } else {
-      userMsg = `Erreur lors de la génération (${errStatus || errMsg.slice(0, 60)})`;
+      userMsg = `Erreur lors de la génération (${errStatus || errMsg.slice(0, 80)})`;
     }
     send({ status: "error", message: userMsg });
     res.end();
