@@ -125,25 +125,52 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
 
     const seed = Math.floor(Math.random() * 1_000_000);
 
-    const prompt = `Chef québécois. Menu 7 jours pour ${preferences.numberOfPeople} personne(s). Seed:${seed}.
+    const N = preferences.numberOfPeople;
+    const diff = preferences.difficultyPreference ?? "Moyen";
+    const allergiesStr = (preferences.allergies as string[]).length > 0 ? (preferences.allergies as string[]).join(", ") : "aucune";
+    const regimeStr = (preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun";
+    const cuisinesStr = (preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées";
 
-PROFIL: budget ${preferences.weeklyBudget}$/sem, ${preferences.cookingTimePerDay} min/jour, allergies: ${(preferences.allergies as string[]).length > 0 ? (preferences.allergies as string[]).join(", ") : "aucune"}, régime: ${(preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun"}, cuisines: ${(preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées"}.
-Frigo: ${ingredientList}.
-Repas à générer: ${mealsToGenerate}. Repas non demandés = null.
-Difficulté: ${preferences.difficultyPreference ?? "Moyen"} (Facile≤25min, Moyen 25-40min, Avancé>40min).
+    const prompt = `Tu es un chef cuisinier québécois. Génère un menu complet de 7 jours (Lundi à Dimanche) pour ${N} personne(s). Seed:${seed}.
 
-RÈGLES:
-- Aucune recette répétée; varier les protéines chaque jour; utiliser les ingrédients du frigo.
-- ≥20g protéines/portion (viande, poisson, légumineuses, œufs, tofu — pas que fromage/glucides).
-- Chaque repas: légumes colorés + féculent (riz, quinoa, pâtes, pain grains entiers, patate).
-- Min 2 repas végétariens protéinés + 1 repas poisson dans la semaine.
-- Noms créatifs et appétissants.
-- Ingrédients: format "qté unité ingrédient", max 5 par recette.
-- Instructions: 2 étapes courtes et précises (max 15 mots chacune).
-- Description: 1 phrase courte (max 12 mots).
+PROFIL:
+- Budget: ${preferences.weeklyBudget}$ CAD/semaine
+- Temps max: ${preferences.cookingTimePerDay} min/jour
+- Allergies (STRICT — ne jamais inclure): ${allergiesStr}
+- Régime: ${regimeStr}
+- Cuisines préférées: ${cuisinesStr}
+- Ingrédients disponibles au frigo: ${ingredientList}
 
-JSON UNIQUEMENT (sans markdown):
-{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["200g poulet","1 citron"],"instructions":["Faire revenir 5 min.","Servir sur riz."],"estimatedCost":5.00,"difficultyLevel":"Facile"},"lunch":MÊME_FORMAT_OU_null,"dinner":MÊME_FORMAT_OU_null},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}`;
+REPAS À INCLURE: ${mealsToGenerate}
+Les repas NON demandés doivent être exactement la valeur JSON null (pas de chaîne, pas d'objet vide).
+
+NIVEAU DE DIFFICULTÉ: ${diff}
+- Facile = ≤25 min, techniques de base
+- Moyen = 25-40 min, 2-3 techniques
+- Avancé = >40 min, techniques élaborées
+
+RÈGLES IMPORTANTES:
+1. Aucune recette répétée dans la semaine
+2. Varier les protéines chaque jour (viande, poisson, légumineuses, œufs, tofu)
+3. Au moins 20g de protéines par portion
+4. Chaque repas contient des légumes colorés et un féculent
+5. Au moins 2 repas végétariens et 1 repas de poisson dans la semaine
+6. Utiliser les ingrédients du frigo en priorité
+7. Noms de recettes créatifs et appétissants
+8. Max 5 ingrédients par recette (format: "quantité unité ingrédient")
+9. Exactement 2 étapes courtes par recette (max 15 mots chacune)
+10. Description: exactement 1 phrase (max 12 mots)
+
+RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — aucun texte avant ou après, aucun bloc markdown, aucune explication.
+
+Structure JSON requise:
+- Racine: objet avec "days" (tableau de 7 objets) et "estimatedCost" (number)
+- Chaque élément de "days": objet avec "dayName" (string), "breakfast", "lunch", "dinner"
+- Les repas non demandés (voir REPAS À INCLURE ci-dessus): valeur JSON null (pas de string, pas d'objet vide)
+- Chaque recette: objet avec "name" (string), "description" (string), "cookingTime" (number en minutes), "servings" (number = ${N}), "ingredients" (tableau de strings), "instructions" (tableau de 2 strings), "estimatedCost" (number en dollars), "difficultyLevel" ("Facile" ou "Moyen" ou "Avancé")
+- Les 7 jours dans l'ordre: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche
+
+Commence ta réponse directement par le caractère { sans aucun texte, espace ou saut de ligne avant.`;
 
 
     const { client: openai, model } = getOpenAI();
@@ -153,7 +180,7 @@ JSON UNIQUEMENT (sans markdown):
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 3000,
+      max_tokens: 4000,
     });
 
     let fullContent = "";
@@ -168,20 +195,58 @@ JSON UNIQUEMENT (sans markdown):
       }
     }
 
-    // Extraire le JSON de la réponse — gérer les blocs markdown et les réponses partielles
+    // Extraire et réparer le JSON de la réponse IA
+    req.log.info({ contentLength: fullContent.length, preview: fullContent.slice(0, 300) }, "AI raw response preview");
+
     let rawJson = fullContent.trim();
-    // Retirer les blocs ```json ... ``` si présents
+
+    // 1. Retirer les blocs markdown ```json ... ``` si présents
     const mdMatch = rawJson.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (mdMatch) rawJson = mdMatch[1].trim();
-    // Trouver le premier { jusqu'au dernier }
-    const start = rawJson.indexOf("{");
-    const end = rawJson.lastIndexOf("}");
-    if (start === -1 || end === -1 || end <= start) {
-      req.log.error({ fullContentLength: fullContent.length, preview: fullContent.slice(0, 200) }, "No JSON found");
+
+    // 2. Trouver le premier { jusqu'au dernier }
+    const jsonStart = rawJson.indexOf("{");
+    if (jsonStart === -1) {
+      req.log.error({ preview: rawJson.slice(0, 500) }, "No JSON object found in AI response");
       throw new Error("No JSON found in AI response");
     }
-    rawJson = rawJson.slice(start, end + 1);
-    const menuData: { days: object[]; estimatedCost: number } = JSON.parse(rawJson);
+    rawJson = rawJson.slice(jsonStart);
+
+    // 3. Essayer de parser directement
+    let menuData: { days: object[]; estimatedCost: number };
+    try {
+      // Chercher le dernier } valide
+      const jsonEnd = rawJson.lastIndexOf("}");
+      const candidate = jsonEnd > 0 ? rawJson.slice(0, jsonEnd + 1) : rawJson;
+      menuData = JSON.parse(candidate);
+    } catch (parseErr) {
+      // 4. Tentative de réparation : le JSON a peut-être été tronqué par max_tokens
+      req.log.warn({ parseErr, rawJsonLength: rawJson.length, tail: rawJson.slice(-200) }, "JSON parse failed, attempting repair");
+
+      // Fermer les structures ouvertes (tableaux et objets) pour réparer un JSON tronqué
+      let depth = 0;
+      let inString = false;
+      let escaped = false;
+      const stack: string[] = [];
+      for (const ch of rawJson) {
+        if (escaped) { escaped = false; continue; }
+        if (ch === "\\" && inString) { escaped = true; continue; }
+        if (ch === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (ch === "{") { stack.push("}"); depth++; }
+        else if (ch === "[") { stack.push("]"); depth++; }
+        else if (ch === "}" || ch === "]") { stack.pop(); depth--; }
+      }
+      // Enlever la virgule trailing si présente
+      const repaired = rawJson.trimEnd().replace(/,\s*$/, "") + stack.reverse().join("");
+      try {
+        menuData = JSON.parse(repaired);
+        req.log.info({ repairedLength: repaired.length }, "JSON repair succeeded");
+      } catch {
+        req.log.error({ rawJsonPreview: rawJson.slice(0, 500), repairedPreview: repaired.slice(-200) }, "JSON repair failed");
+        throw new Error("No JSON found in AI response");
+      }
+    }
 
     const weekStart = new Date().toISOString().split("T")[0];
     const [savedMenu] = await db
