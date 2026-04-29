@@ -24,7 +24,18 @@ function getOpenAI(): { client: OpenAI; model: string } {
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
     };
   }
-  // Groq: free tier, no credit card needed (https://console.groq.com)
+  // Google Gemini: 1500 requêtes/jour gratuites, compte Google suffit
+  // Clé dispo sur https://aistudio.google.com/apikey
+  if (process.env.GEMINI_API_KEY) {
+    return {
+      client: new OpenAI({
+        baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+        apiKey: process.env.GEMINI_API_KEY,
+      }),
+      model: process.env.OPENAI_MODEL ?? "gemini-2.0-flash",
+    };
+  }
+  // Groq: gratuit sans carte de crédit (https://console.groq.com)
   if (process.env.GROQ_API_KEY) {
     return {
       client: new OpenAI({
@@ -34,10 +45,10 @@ function getOpenAI(): { client: OpenAI; model: string } {
       model: process.env.OPENAI_MODEL ?? "llama-3.3-70b-versatile",
     };
   }
-  // Standard OpenAI (paid)
+  // Standard OpenAI (payant)
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("Set GROQ_API_KEY (free at console.groq.com) or OPENAI_API_KEY");
+    throw new Error("Missing AI key: set GEMINI_API_KEY, GROQ_API_KEY, or OPENAI_API_KEY");
   }
   return {
     client: new OpenAI({ apiKey }),
