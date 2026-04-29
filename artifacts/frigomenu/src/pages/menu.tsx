@@ -10,9 +10,11 @@ import { usePaywall } from "@/hooks/usePaywall";
 import { PaywallModal } from "@/components/PaywallModal";
 import { useAuth } from "@clerk/react";
 
-function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal, forceOpen?: boolean }) {
+function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal | null | undefined, forceOpen?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const isOpen = expanded || forceOpen;
+
+  if (!meal) return null;
 
   return (
     <div className="border border-border/40 rounded-2xl overflow-hidden bg-card hover:border-border/80 transition-all print-break-inside-avoid">
@@ -208,7 +210,8 @@ export default function MenuPage() {
       y += 14;
 
       for (const [key, label] of Object.entries(mealTitles)) {
-        const meal = day[key as keyof typeof day] as Meal;
+        const meal = day[key as keyof typeof day] as Meal | null | undefined;
+        if (!meal) continue;
         checkPage(30);
 
         // Meal name row

@@ -137,42 +137,28 @@ export const SavePreferencesResponse = zod.object({
 /**
  * @summary Generate a weekly menu using AI
  */
+const MealSchema = zod.object({
+  name: zod.string(),
+  description: zod.string(),
+  cookingTime: zod.number().describe("Minutes to cook"),
+  servings: zod.number(),
+  ingredients: zod.array(zod.string()),
+  instructions: zod.array(zod.string()),
+  estimatedCost: zod.number(),
+}).nullish();
+
+const DaySchema = zod.object({
+  dayName: zod.string(),
+  breakfast: MealSchema,
+  lunch: MealSchema,
+  dinner: MealSchema,
+});
+
 export const GenerateMenuResponse = zod.object({
   id: zod.number(),
   weekStart: zod.string(),
-  days: zod.array(
-    zod.object({
-      dayName: zod.string(),
-      breakfast: zod.object({
-        name: zod.string(),
-        description: zod.string(),
-        cookingTime: zod.number().describe("Minutes to cook"),
-        servings: zod.number(),
-        ingredients: zod.array(zod.string()),
-        instructions: zod.array(zod.string()),
-        estimatedCost: zod.number(),
-      }),
-      lunch: zod.object({
-        name: zod.string(),
-        description: zod.string(),
-        cookingTime: zod.number().describe("Minutes to cook"),
-        servings: zod.number(),
-        ingredients: zod.array(zod.string()),
-        instructions: zod.array(zod.string()),
-        estimatedCost: zod.number(),
-      }),
-      dinner: zod.object({
-        name: zod.string(),
-        description: zod.string(),
-        cookingTime: zod.number().describe("Minutes to cook"),
-        servings: zod.number(),
-        ingredients: zod.array(zod.string()),
-        instructions: zod.array(zod.string()),
-        estimatedCost: zod.number(),
-      }),
-    }),
-  ),
-  estimatedCost: zod.number(),
+  days: zod.array(DaySchema),
+  estimatedCost: zod.union([zod.number(), zod.string().transform(Number)]),
   generatedAt: zod.string(),
 });
 
@@ -185,39 +171,8 @@ export const GetCurrentMenuResponse = zod.object({
     .object({
       id: zod.number(),
       weekStart: zod.string(),
-      days: zod.array(
-        zod.object({
-          dayName: zod.string(),
-          breakfast: zod.object({
-            name: zod.string(),
-            description: zod.string(),
-            cookingTime: zod.number().describe("Minutes to cook"),
-            servings: zod.number(),
-            ingredients: zod.array(zod.string()),
-            instructions: zod.array(zod.string()),
-            estimatedCost: zod.number(),
-          }),
-          lunch: zod.object({
-            name: zod.string(),
-            description: zod.string(),
-            cookingTime: zod.number().describe("Minutes to cook"),
-            servings: zod.number(),
-            ingredients: zod.array(zod.string()),
-            instructions: zod.array(zod.string()),
-            estimatedCost: zod.number(),
-          }),
-          dinner: zod.object({
-            name: zod.string(),
-            description: zod.string(),
-            cookingTime: zod.number().describe("Minutes to cook"),
-            servings: zod.number(),
-            ingredients: zod.array(zod.string()),
-            instructions: zod.array(zod.string()),
-            estimatedCost: zod.number(),
-          }),
-        }),
-      ),
-      estimatedCost: zod.number(),
+      days: zod.array(DaySchema),
+      estimatedCost: zod.union([zod.number(), zod.string().transform(Number)]),
       generatedAt: zod.string(),
     })
     .nullish(),
