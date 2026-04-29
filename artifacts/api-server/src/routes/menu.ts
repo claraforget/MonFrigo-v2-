@@ -223,10 +223,24 @@ Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dima
     res.end();
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
-    req.log.error({ err, errMsg }, "Menu generation failed");
-    const userMsg = errMsg.includes("API key") || errMsg.includes("auth") || errMsg.includes("401")
-      ? "Clé API IA manquante ou invalide — contactez le support."
-      : "Erreur lors de la génération du menu";
+    const errStatus = (err as { status?: number }).status ?? 0;
+    req.log.error({ err, errMsg, errStatus }, "Menu generation failed");
+    let userMsg: string;
+    if (errStatus === 401 || errStatus === 403 || errMsg.includes("API key") || errMsg.includes("auth")) {
+      userMsg = "Clé API IA invalide (401/403) — vérifiez votre clé.";
+    } else if (errStatus === 400) {
+      const onReplit = !!(process.env.REPL_ID || process.env.REPLIT_DEPLOYMENT_ID);
+      const provider = process.env.GEMINI_API_KEY ? "Gemini" : process.env.GROQ_API_KEY ? "Groq" : "OpenAI";
+      userMsg = onReplit
+        ? "Erreur 400 du proxy Replit — modèle incorrect."
+        : `Erreur 400 de ${provider} — clé incorrecte ou modèle invalide.`;
+    } else if (errStatus === 429) {
+      userMsg = "Limite de quota atteinte — réessayez dans quelques instants.";
+    } else if (errMsg.includes("No JSON") || errMsg.includes("JSON")) {
+      userMsg = "La réponse IA n'est pas au bon format — réessayez.";
+    } else {
+      userMsg = `Erreur lors de la génération (${errStatus || errMsg.slice(0, 60)})`;
+    }
     send({ status: "error", message: userMsg });
     res.end();
     return;
