@@ -149,7 +149,13 @@ export default function MenuPage() {
     setGenerateError(null);
     pendingCountRef.current = true;
     abortRef.current = new AbortController();
-    let gotError = false;
+
+    // Distinguer les erreurs pré-stream (avant d'avoir reçu quoi que ce soit)
+    // des erreurs mid-stream (connexion coupée par Vercel à 10s — le menu peut quand même être sauvé)
+    let preStreamError = false;
+    let streamingStarted = false;
+    let sseError = false;
+
     try {
       const token = await getToken();
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
@@ -161,9 +167,21 @@ export default function MenuPage() {
         },
         signal: abortRef.current.signal,
       });
+
       if (!res.ok || !res.body) {
-        throw new Error(`HTTP ${res.status}`);
+        preStreamError = true;
+        const status = res.status;
+        if (status === 401 || status === 403) {
+          setGenerateError("Session expirée — reconnectez-vous.");
+        } else if (status === 429) {
+          setGenerateError("Limite de quota atteinte — réessayez dans quelques instants.");
+        } else {
+          setGenerateError(`Erreur serveur (${status}) — réessayez.`);
+        }
+        return;
       }
+
+      streamingStarted = true;
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -181,7 +199,7 @@ export default function MenuPage() {
           try {
             const event = JSON.parse(json);
             if (event.status === "error") {
-              gotError = true;
+              sseError = true;
               setGenerateError(event.message ?? "Erreur de génération");
             }
           } catch {
@@ -194,15 +212,21 @@ export default function MenuPage() {
         pendingCountRef.current = false;
         return;
       }
-      gotError = true;
-      setGenerateError("Impossible de générer le menu. Réessayez.");
+      if (!streamingStarted) {
+        // Jamais commencé — erreur réseau vraie
+        preStreamError = true;
+        setGenerateError("Impossible de joindre le serveur — vérifiez votre connexion.");
+      }
+      // Si le stream avait commencé : connexion coupée (timeout Vercel) — le menu est peut-être sauvé
+      // Ne pas afficher d'erreur, laisser le finally rafraîchir la query
     } finally {
       setIsGenerating(false);
-      if (gotError) {
+      if (preStreamError || sseError) {
         pendingCountRef.current = false;
-      } else {
-        // Toujours rafraîchir — le menu peut être prêt même si la connexion SSE a été coupée
+      } else if (streamingStarted) {
+        // Rafraîchir immédiatement + une 2e fois après 4s (si la DB s'est mise à jour juste après le timeout)
         queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] });
+        setTimeout(() => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] }), 4000);
       }
     }
   }, [getToken, queryClient]);

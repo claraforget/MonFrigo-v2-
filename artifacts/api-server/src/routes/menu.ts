@@ -26,13 +26,14 @@ function getOpenAI(): { client: OpenAI; model: string } {
     };
   }
   // Groq: 100% gratuit, sans carte de crédit (https://console.groq.com)
+  // llama-3.1-8b-instant : ~750 tokens/sec (vs ~330 pour 70b) → passe sous le timeout Vercel de 10s
   if (process.env.GROQ_API_KEY) {
     return {
       client: new OpenAI({
         baseURL: "https://api.groq.com/openai/v1",
         apiKey: process.env.GROQ_API_KEY,
       }),
-      model: process.env.OPENAI_MODEL ?? "llama-3.3-70b-versatile",
+      model: process.env.OPENAI_MODEL ?? "llama-3.1-8b-instant",
     };
   }
   // Google Gemini: clé sur https://aistudio.google.com/apikey
@@ -98,50 +99,25 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
 
   const seed = Math.floor(Math.random() * 1_000_000);
 
-  const prompt = `Tu es chef cuisinier québécois. Génère un menu de 7 jours pour ${preferences.numberOfPeople} personne(s). Seed: ${seed}.
+  const prompt = `Chef québécois. Menu 7 jours pour ${preferences.numberOfPeople} personne(s). Seed:${seed}.
 
-PROFIL:
-- Budget: ${preferences.weeklyBudget} $ CAD/semaine
-- Temps max/jour: ${preferences.cookingTimePerDay} min
-- Allergies (STRICT): ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
-- Préférences: ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucune"}
-- Cuisines: ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "variées"}
-- Ingrédients au frigo: ${ingredientList}
+PROFIL: budget ${preferences.weeklyBudget}$/sem, ${preferences.cookingTimePerDay} min/jour, allergies: ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}, régime: ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucun"}, cuisines: ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "variées"}.
+Frigo: ${ingredientList}.
+Repas à générer: ${mealsToGenerate}. Repas non demandés = null.
+Difficulté: ${preferences.difficultyPreference ?? "Moyen"} (Facile≤25min, Moyen 25-40min, Avancé>40min).
 
-REPAS À GÉNÉRER: ${mealsToGenerate}. Tout autre repas = null.
+RÈGLES:
+- Aucune recette répétée; varier les protéines chaque jour; utiliser les ingrédients du frigo.
+- ≥20g protéines/portion (viande, poisson, légumineuses, œufs, tofu — pas que fromage/glucides).
+- Chaque repas: légumes colorés + féculent (riz, quinoa, pâtes, pain grains entiers, patate).
+- Min 2 repas végétariens protéinés + 1 repas poisson dans la semaine.
+- Noms créatifs et appétissants.
+- Ingrédients: format "qté unité ingrédient", max 5 par recette.
+- Instructions: 2 étapes courtes et précises (max 15 mots chacune).
+- Description: 1 phrase courte (max 12 mots).
 
-RÈGLES NUTRITIONNELLES (OBLIGATOIRES):
-- Minimum 20 g de protéines par portion (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage ou glucides seuls)
-- Maximum 2000 mg de sodium par jour — éviter sauces en bouteille, charcuteries; privilégier épices, fines herbes, jus de citron
-- Chaque recette inclut des légumes variés et colorés (ou un fruit au déjeuner matin)
-- Chaque repas principal inclut un féculent (riz, quinoa, pâtes de blé entier, patate douce, pain de grains entiers) ou un accompagnement suggéré dans la description
-- Minimum 2 repas végétariens riches en protéines et 1 repas de poisson dans la semaine
-
-SAVEUR ET SOPHISTICATION:
-- Utiliser des techniques qui développent la saveur : saisir à feu vif pour créer une croûte, déglacer pour récupérer les sucs, faire revenir l'ail et les épices dans le gras avant d'ajouter les liquides
-- Équilibre acide-gras-sel-umami : toujours finir avec un élément acide (jus de citron, vinaigre), une touche de gras (huile d'olive, beurre) et une profondeur umami (miso, parmesan, champignons, tamari)
-- Contraste de textures dans chaque plat : croquant vs fondant, frais vs chaud
-- Noms de recettes créatifs et appétissants (ex: "Saumon à la croûte de pistaches, purée de chou-fleur au citron" plutôt que "Saumon avec chou-fleur")
-- S'adapter au temps disponible (${preferences.cookingTimePerDay} min/jour) : semaine = techniques rapides mais savoureuses; weekend = techniques plus élaborées si le temps le permet
-
-NIVEAU DE DIFFICULTÉ DEMANDÉ: ${preferences.difficultyPreference ?? "Moyen"}
-Adapter la complexité des recettes à ce niveau. Définitions:
-- "Facile" : techniques de base, ≤ 25 min, aucun équipement spécial (sauté rapide, bol assemblé, omelette)
-- "Moyen" : 2-3 techniques simultanées, 25-40 min (rôtissage, sauce réduite, marinade, grillé)
-- "Avancé" : techniques élaborées ou > 40 min (braiser, confit, croûte, sauce complexe, cuisson lente)
-Assign the "difficultyLevel" field matching each recipe's actual complexity (can vary ±1 level from the preference for variety).
-
-AUTRES RÈGLES:
-- Aucune recette répétée dans la semaine
-- Varier les sources de protéines chaque jour
-- Utiliser en priorité les ingrédients du frigo
-- Instructions: 3-4 étapes précises avec quantités et temps
-- Ingrédients: format "quantité + unité + ingrédient" (ex: "200 g de poitrine de poulet")
-- description: 1 phrase évocatrice qui donne envie
-
-Réponds SEULEMENT avec ce JSON (sans markdown):
-{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":4.50,"difficultyLevel":"Facile"},"lunch":{"name":"...","description":"...","cookingTime":20,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":6.00,"difficultyLevel":"Moyen"},"dinner":{"name":"...","description":"...","cookingTime":30,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":9.00,"difficultyLevel":"Avancé"}},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}
-Les repas non demandés sont null. Inclure les 7 jours.`;
+JSON UNIQUEMENT (sans markdown):
+{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["200g poulet","1 citron"],"instructions":["Faire revenir 5 min.","Servir sur riz."],"estimatedCost":5.00,"difficultyLevel":"Facile"},"lunch":MÊME_FORMAT_OU_null,"dinner":MÊME_FORMAT_OU_null},…7 jours…],"estimatedCost":120.00}`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -163,7 +139,7 @@ Les repas non demandés sont null. Inclure les 7 jours.`;
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 8000,
+      max_tokens: 3000,
     });
 
     let fullContent = "";
