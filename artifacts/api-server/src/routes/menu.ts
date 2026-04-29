@@ -121,9 +121,9 @@ Chaque recette doit être PRÉCISE et ACTIONNABLE, comme dans un vrai livre de r
 
 RÈGLES D'OR pour les instructions :
 1. Chaque étape = UNE action concrète avec quantité, température, durée ET indice visuel/sensoriel
-2. Minimum 6 étapes par recette (8-10 pour les plats principaux)
-3. Toujours préciser : le format de coupe (brunoise, julienne, en dés de 1 cm, émincé finement), la température de cuisson (feu vif, moyen-vif, doux), la durée exacte, et le signe visuel de réussite
-4. Mentionner les astuces de chef : "ne pas surcharger la poêle", "laisser reposer la viande 5 min avant de couper", "déglacer avec 60 ml de vin blanc pour décoller les sucs"
+2. Petits-déjeuners et dîners légers : 4-5 étapes. Plats principaux du souper : 5-7 étapes.
+3. Toujours préciser : format de coupe (en dés de 1 cm, émincé finement), température (feu vif/moyen/doux), durée exacte, et indice visuel de réussite
+4. Inclure au moins 1 astuce de chef par recette : "ne pas surcharger la poêle", "laisser reposer la viande 5 min", "déglacer avec 60 ml de bouillon"
 
 RÈGLES pour les ingrédients :
 • Format : "quantité précise + unité + ingrédient + précision si nécessaire" → ex: "200 g de poitrine de poulet, coupée en lanières de 2 cm", "2 gousses d'ail, hachées finement", "1 boîte (400 ml) de lait de coco léger"
@@ -150,40 +150,19 @@ RÈGLES pour les ingrédients :
 • Weekend : recettes plus élaborées, techniques ou festives
 • Répartir intelligemment le budget sur la semaine
 
-Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte avant ou après) :
+Réponds UNIQUEMENT avec un objet JSON valide respectant exactement cette structure (sans markdown, sans texte autour) :
 {
   "days": [
     {
       "dayName": "Lundi",
-      "breakfast": {
-        "name": "Nom accrocheur et appétissant",
-        "description": "2-3 phrases évocatrices qui donnent envie de cuisiner : textures, saveurs, contexte",
-        "cookingTime": 20,
-        "servings": ${preferences.numberOfPeople},
-        "ingredients": [
-          "180 ml (3/4 tasse) de flocons d'avoine à cuisson rapide",
-          "500 ml (2 tasses) de lait d'amande non sucré",
-          "1 c. à soupe de sirop d'érable pur",
-          "1/2 c. à thé de cannelle moulue",
-          "1 pomme Cortland, pelée et coupée en petits dés"
-        ],
-        "instructions": [
-          "Dans une casserole moyenne, porter le lait d'amande à ébullition à feu moyen en remuant de temps en temps pour éviter qu'il colle.",
-          "Réduire le feu à moyen-doux et verser les flocons d'avoine en pluie. Remuer continuellement à la cuillère de bois.",
-          "Cuire 3 à 4 minutes en remuant, jusqu'à ce que le gruau épaississe et que la consistance crémeuse se forme — il ne doit pas coller au fond.",
-          "Pendant ce temps, faire sauter les dés de pomme dans une petite poêle avec 1 c. à thé de beurre et la cannelle, 2 minutes à feu vif, jusqu'à ce qu'ils soient légèrement caramélisés.",
-          "Retirer le gruau du feu, incorporer le sirop d'érable et une pincée de sel.",
-          "Servir dans des bols chauds, garnir des pommes caramélisées et d'un filet de sirop d'érable supplémentaire si désiré."
-        ],
-        "estimatedCost": 3.50
-      },
-      "lunch": null,
-      "dinner": { "..." }
+      "breakfast": { "name": "...", "description": "...", "cookingTime": 15, "servings": ${preferences.numberOfPeople}, "ingredients": ["quantité + ingrédient précis", "..."], "instructions": ["étape détaillée 1", "étape détaillée 2", "..."], "estimatedCost": 4.50 },
+      "lunch": { "name": "...", "description": "...", "cookingTime": 20, "servings": ${preferences.numberOfPeople}, "ingredients": ["..."], "instructions": ["..."], "estimatedCost": 6.00 },
+      "dinner": { "name": "...", "description": "...", "cookingTime": 30, "servings": ${preferences.numberOfPeople}, "ingredients": ["..."], "instructions": ["..."], "estimatedCost": 9.00 }
     }
   ],
   "estimatedCost": 115.00
 }
-Les 7 jours : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche`;
+Les 7 jours dans l'ordre : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche. Repas non demandés = null.`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -201,10 +180,13 @@ Les 7 jours : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche`;
     const { client: openai, model } = getOpenAI();
     req.log.info({ model }, "Generating menu with model");
 
+    const isGroq = !!(process.env.GROQ_API_KEY && !process.env.REPL_ID);
     const stream = await openai.chat.completions.create({
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
+      max_tokens: 12000,
+      ...(isGroq ? { response_format: { type: "json_object" as const } } : {}),
     });
 
     let fullContent = "";
@@ -219,9 +201,20 @@ Les 7 jours : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche`;
       }
     }
 
-    const jsonMatch = fullContent.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No JSON found in response");
-    const menuData: { days: object[]; estimatedCost: number } = JSON.parse(jsonMatch[0]);
+    // Extraire le JSON de la réponse — gérer les blocs markdown et les réponses partielles
+    let rawJson = fullContent.trim();
+    // Retirer les blocs ```json ... ``` si présents
+    const mdMatch = rawJson.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (mdMatch) rawJson = mdMatch[1].trim();
+    // Trouver le premier { jusqu'au dernier }
+    const start = rawJson.indexOf("{");
+    const end = rawJson.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) {
+      req.log.error({ fullContentLength: fullContent.length, preview: fullContent.slice(0, 200) }, "No JSON found");
+      throw new Error("No JSON found in AI response");
+    }
+    rawJson = rawJson.slice(start, end + 1);
+    const menuData: { days: object[]; estimatedCost: number } = JSON.parse(rawJson);
 
     const weekStart = new Date().toISOString().split("T")[0];
     const [savedMenu] = await db
