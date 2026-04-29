@@ -109,14 +109,17 @@ PROFIL:
 
 REPAS À GÉNÉRER: ${mealsToGenerate}. Tout autre repas = null.
 
-RÈGLES:
+RÈGLES NUTRITIONNELLES (OBLIGATOIRES):
+- Minimum 20 g de protéines par portion dans chaque recette (viande, poisson, légumineuses, tofu, œufs, yogourt grec — jamais que du fromage ou des glucides)
+- Chaque recette doit inclure des légumes variés et colorés (ou un fruit le matin au déjeuner)
+- Chaque repas principal doit inclure un féculent (riz, quinoa, pâtes de blé entier, patate douce, pain de grains entiers, etc.) ou mentionner un accompagnement suggéré dans la description
 - Aucune recette répétée dans la semaine
-- Varier les protéines chaque jour
+- Varier les sources de protéines chaque jour
 - Utiliser en priorité les ingrédients du frigo
 - Instructions: 3-4 étapes précises avec quantités et temps (ex: "Chauffer 1 c.s. d'huile à feu vif, saisir le poulet 3 min par côté jusqu'à doré")
 - Ingrédients: format "quantité + unité + ingrédient" (ex: "200 g de poitrine de poulet")
 - description: 1 phrase appétissante
-- Minimum 2 repas végétariens et 1 repas de poisson dans la semaine
+- Minimum 2 repas végétariens (riches en protéines) et 1 repas de poisson dans la semaine
 
 Réponds SEULEMENT avec ce JSON (sans markdown):
 {"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":4.50},"lunch":{"name":"...","description":"...","cookingTime":20,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":6.00},"dinner":{"name":"...","description":"...","cookingTime":30,"servings":${preferences.numberOfPeople},"ingredients":["..."],"instructions":["..."],"estimatedCost":9.00}},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}
