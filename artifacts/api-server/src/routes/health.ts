@@ -18,13 +18,13 @@ router.get("/healthz/ai", (_req, res) => {
     provider = "replit-proxy";
     model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
     keyConfigured = true;
-  } else if (process.env.GEMINI_API_KEY) {
-    provider = "gemini";
-    model = process.env.OPENAI_MODEL ?? "gemini-1.5-flash";
-    keyConfigured = true;
   } else if (process.env.GROQ_API_KEY) {
     provider = "groq";
     model = process.env.OPENAI_MODEL ?? "llama-3.3-70b-versatile";
+    keyConfigured = true;
+  } else if (process.env.GEMINI_API_KEY) {
+    provider = "gemini";
+    model = process.env.OPENAI_MODEL ?? "gemini-2.0-flash";
     keyConfigured = true;
   } else if (process.env.OPENAI_API_KEY) {
     provider = "openai";
