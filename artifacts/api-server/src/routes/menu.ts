@@ -97,69 +97,93 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
 
   const seed = Math.floor(Math.random() * 1_000_000);
 
-  const prompt = `Tu es un chef cuisinier québécois ET un nutritionniste diplômé. Tu planifies des menus hebdomadaires SAVOUREUX, VARIÉS et ÉQUILIBRÉS sur le plan nutritionnel.
+  const prompt = `Tu es un chef cuisinier québécois passionné, auteur de livres de recettes, et nutritionniste diplômé. Tu rédiges des menus hebdomadaires pour ${preferences.numberOfPeople} personne(s), comme si tu écrivais pour un blogue culinaire professionnel (style Trois fois par jour, Le Coup de Grâce, ou Mordu de Radio-Canada).
 
-CONTRAINTES DU FOYER:
-- Temps de cuisson max par jour: ${preferences.cookingTimePerDay} minutes
-- Budget hebdomadaire: ${preferences.weeklyBudget}$ CAD
-- Nombre de personnes: ${preferences.numberOfPeople}
-- Allergies à éviter (STRICT, ne JAMAIS inclure): ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
-- Préférences alimentaires: ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucune"}
-- Cuisines préférées: ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "toutes les cuisines"}
-- Ingrédients disponibles au frigo: ${ingredientList}
+━━━ PROFIL DU FOYER ━━━
+• Temps max de cuisson par jour : ${preferences.cookingTimePerDay} min
+• Budget hebdomadaire : ${preferences.weeklyBudget} $ CAD
+• Nombre de personnes : ${preferences.numberOfPeople}
+• Allergies (STRICT — ne jamais inclure) : ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}
+• Préférences alimentaires : ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucune restriction"}
+• Cuisines préférées : ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "toutes les cuisines du monde"}
+• Ingrédients disponibles au frigo : ${ingredientList}
 
-EXIGENCES NUTRITIONNELLES (Guide alimentaire canadien):
-- Chaque repas principal doit contenir : 1/2 légumes & fruits, 1/4 protéines, 1/4 grains entiers
-- Au moins 3 sources DIFFÉRENTES de protéines maigres dans la semaine (poisson, légumineuses, volaille, tofu, œufs)
-- Inclure du POISSON ou des FRUITS DE MER au moins 2 fois par semaine (oméga-3)
-- Inclure au moins 2 repas 100% VÉGÉTARIENS (légumineuses, tofu) pour réduire la viande rouge
-- Privilégier les grains entiers (riz brun, quinoa, pâtes de blé entier, avoine) plutôt que raffinés
-- Limiter les fritures, charcuteries, sauces crémeuses et sucres ajoutés
-- Au moins 5 portions de légumes/fruits différents par jour
-- Méthodes de cuisson saines : vapeur, four, mijoté, sauté léger, grillé
+━━━ REPAS À GÉNÉRER ━━━
+• Génère UNIQUEMENT : ${mealsToGenerate}
+• Pour tout repas NON listé ci-dessus : mettre null dans le JSON
 
-REPAS À PLANIFIER (IMPORTANT):
-- Génère UNIQUEMENT ces repas pour chaque jour : ${mealsToGenerate}
-- Pour les repas NON listés ci-dessus, mets la valeur null dans le JSON (ne génère pas de recette)
-- L'utilisateur s'occupe lui-même des autres repas, ne les remplis pas
+━━━ QUALITÉ DES RECETTES — CRITIQUE ━━━
+Chaque recette doit être PRÉCISE et ACTIONNABLE, comme dans un vrai livre de recettes. Interdit :
+✗ "Cuire le quinoa" → ✓ "Rincer 180 ml (3/4 tasse) de quinoa sous l'eau froide. Porter 360 ml d'eau salée à ébullition, ajouter le quinoa, couvrir et réduire à feu doux. Cuire 15 min jusqu'à absorption complète, puis retirer du feu et laisser gonfler 5 min à couvert."
+✗ "Assaisonner" → ✓ "Assaisonner de 1/2 c. à thé de sel kasher et d'un généreux tour de moulin à poivre."
+✗ "Chauffer l'huile" → ✓ "Chauffer 15 ml (1 c. à soupe) d'huile d'olive à feu moyen-vif dans une poêle en fonte jusqu'à ce qu'elle commence à frémir légèrement."
+✗ "Cuire jusqu'à doré" → ✓ "Saisir 3-4 minutes sans bouger, jusqu'à ce qu'une belle croûte dorée se forme et que la viande se détache naturellement de la poêle."
 
-EXIGENCES DE VARIÉTÉ (TRÈS IMPORTANT):
-- AUCUNE recette ne doit se répéter dans la semaine (${totalRecipes} recettes uniques pour ${selectedMeals.length} repas/jour x 7 jours)
-- Varier les cuisines du monde sur la semaine (parmi les préférences ou éclectique)
-- Varier les protéines : ne pas servir la même 2 jours de suite
-- Varier les textures, couleurs et températures (chaud/froid, croquant/fondant)
-- Petits-déjeuners variés : alterner sucré/salé, chaud/froid, rapide/élaboré
-- Inclure 1 ou 2 plats québécois traditionnels REVISITÉS en version santé
-- Graine d'inspiration aléatoire pour cette semaine: ${seed} (utilise-la pour explorer de nouvelles idées, ne jamais répéter les mêmes 7 jours)
+RÈGLES D'OR pour les instructions :
+1. Chaque étape = UNE action concrète avec quantité, température, durée ET indice visuel/sensoriel
+2. Minimum 6 étapes par recette (8-10 pour les plats principaux)
+3. Toujours préciser : le format de coupe (brunoise, julienne, en dés de 1 cm, émincé finement), la température de cuisson (feu vif, moyen-vif, doux), la durée exacte, et le signe visuel de réussite
+4. Mentionner les astuces de chef : "ne pas surcharger la poêle", "laisser reposer la viande 5 min avant de couper", "déglacer avec 60 ml de vin blanc pour décoller les sucs"
 
-INSTRUCTIONS GÉNÉRALES:
-- Utilise en PRIORITÉ les ingrédients du frigo pour réduire le gaspillage
-- Respecter la somme totale du budget
-- Répartir équitablement les temps de cuisson (jours rapides en semaine, plus élaborés le weekend)
-- Instructions claires, étape par étape, accessibles à un cuisinier amateur
+RÈGLES pour les ingrédients :
+• Format : "quantité précise + unité + ingrédient + précision si nécessaire" → ex: "200 g de poitrine de poulet, coupée en lanières de 2 cm", "2 gousses d'ail, hachées finement", "1 boîte (400 ml) de lait de coco léger"
+• Toujours inclure : huiles, épices, sel, poivre, herbes fraîches, garnitures
 
-Réponds UNIQUEMENT avec un JSON valide dans ce format exact:
+━━━ ÉQUILIBRE NUTRITIONNEL (Guide alimentaire canadien) ━━━
+• Chaque repas principal : ½ légumes variés, ¼ protéines maigres, ¼ grains entiers
+• Minimum 2 repas de poisson/fruits de mer dans la semaine
+• Minimum 2 repas 100 % végétariens (tofu, légumineuses)
+• Favoriser grains entiers : quinoa, riz brun, épeautre, pâtes intégrales, avoine
+• Méthodes saines : vapeur, four, poché, sauté léger, grillé
+
+━━━ VARIÉTÉ (${totalRecipes} recettes uniques) ━━━
+• Aucune recette répétée dans la semaine
+• Varier les protéines chaque jour (pas la même 2 jours de suite)
+• Varier les cuisines : québécoise revisitée, méditerranéenne, asiatique, mexicaine, etc.
+• Petits-déjeuners : alterner sucré/salé, chaud/froid, rapide/élaboré
+• Inclure 1-2 plats québécois revisités en version santé (bol de bouillon, cipâte léger, tartine de fromage en grains, etc.)
+• Graine créative de la semaine : ${seed} — chaque semaine doit être unique
+
+━━━ PRIORITÉS PRATIQUES ━━━
+• Utiliser EN PRIORITÉ les ingrédients du frigo (réduire le gaspillage)
+• Jours de semaine : recettes ≤ 35 min, simples et rapides
+• Weekend : recettes plus élaborées, techniques ou festives
+• Répartir intelligemment le budget sur la semaine
+
+Réponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte avant ou après) :
 {
   "days": [
     {
       "dayName": "Lundi",
       "breakfast": {
-        "name": "...",
-        "description": "...",
-        "cookingTime": 15,
-        "servings": 2,
-        "ingredients": ["...", "..."],
-        "instructions": ["...", "..."],
-        "estimatedCost": 5.50
+        "name": "Nom accrocheur et appétissant",
+        "description": "2-3 phrases évocatrices qui donnent envie de cuisiner : textures, saveurs, contexte",
+        "cookingTime": 20,
+        "servings": ${preferences.numberOfPeople},
+        "ingredients": [
+          "180 ml (3/4 tasse) de flocons d'avoine à cuisson rapide",
+          "500 ml (2 tasses) de lait d'amande non sucré",
+          "1 c. à soupe de sirop d'érable pur",
+          "1/2 c. à thé de cannelle moulue",
+          "1 pomme Cortland, pelée et coupée en petits dés"
+        ],
+        "instructions": [
+          "Dans une casserole moyenne, porter le lait d'amande à ébullition à feu moyen en remuant de temps en temps pour éviter qu'il colle.",
+          "Réduire le feu à moyen-doux et verser les flocons d'avoine en pluie. Remuer continuellement à la cuillère de bois.",
+          "Cuire 3 à 4 minutes en remuant, jusqu'à ce que le gruau épaississe et que la consistance crémeuse se forme — il ne doit pas coller au fond.",
+          "Pendant ce temps, faire sauter les dés de pomme dans une petite poêle avec 1 c. à thé de beurre et la cannelle, 2 minutes à feu vif, jusqu'à ce qu'ils soient légèrement caramélisés.",
+          "Retirer le gruau du feu, incorporer le sirop d'érable et une pincée de sel.",
+          "Servir dans des bols chauds, garnir des pommes caramélisées et d'un filet de sirop d'érable supplémentaire si désiré."
+        ],
+        "estimatedCost": 3.50
       },
-      "lunch": { ... },
-      "dinner": { ... }
+      "lunch": null,
+      "dinner": { "..." }
     }
   ],
-  "estimatedCost": 120.00
+  "estimatedCost": 115.00
 }
-
-Les 7 jours doivent être: Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche`;
+Les 7 jours : Lundi, Mardi, Mercredi, Jeudi, Vendredi, Samedi, Dimanche`;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
