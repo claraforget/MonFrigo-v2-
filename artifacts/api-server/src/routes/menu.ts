@@ -59,49 +59,75 @@ function getOpenAI(): { client: OpenAI; model: string } {
 
 router.post("/menu/generate", async (req, res): Promise<void> => {
   const userId = (req as AuthedRequest).userId;
-  const ingredients = await db
-    .select()
-    .from(fridgeIngredientsTable)
-    .where(eq(fridgeIngredientsTable.userId, userId));
-  const [prefs] = await db
-    .select()
-    .from(userPreferencesTable)
-    .where(eq(userPreferencesTable.userId, userId))
-    .limit(1);
 
-  const preferences = prefs ?? {
-    cookingTimePerDay: 45,
-    weeklyBudget: 150,
-    numberOfPeople: 2,
-    allergies: [],
-    dietaryPreferences: [],
-    cuisinePreferences: [],
-    mealTypes: ["breakfast", "lunch", "dinner"],
-    difficultyPreference: "Moyen",
+  // Envoyer les headers SSE EN PREMIER — avant tout appel DB ou IA.
+  // Ainsi, même si quelque chose plante ensuite, le client reçoit un événement SSE
+  // d'erreur au lieu d'un 500 HTTP brut.
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const send = (data: object) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
 
-  const selectedMeals = preferences.mealTypes && preferences.mealTypes.length > 0
-    ? preferences.mealTypes
-    : ["breakfast", "lunch", "dinner"];
-  const mealLabels: Record<string, string> = {
-    breakfast: "déjeuner (matin)",
-    lunch: "dîner (midi)",
-    dinner: "souper (soir)",
-  };
-  const mealsToGenerate = selectedMeals
-    .map((k) => mealLabels[k] ?? k)
-    .join(", ");
-  const totalRecipes = selectedMeals.length * 7;
+  send({ status: "start" });
 
-  const ingredientList = ingredients.length > 0
-    ? ingredients.map(i => `${i.name} (${i.quantity} ${i.unit})`).join(", ")
-    : "Aucun ingrédient spécifié – proposer des repas simples avec des ingrédients courants";
+  try {
+    const ingredients = await db
+      .select()
+      .from(fridgeIngredientsTable)
+      .where(eq(fridgeIngredientsTable.userId, userId));
 
-  const seed = Math.floor(Math.random() * 1_000_000);
+    // Lecture des préférences avec fallback complet si la colonne n'existe pas encore
+    // (ex: migration DB non encore appliquée en production)
+    let prefs: typeof userPreferencesTable.$inferSelect | undefined;
+    try {
+      const rows = await db
+        .select()
+        .from(userPreferencesTable)
+        .where(eq(userPreferencesTable.userId, userId))
+        .limit(1);
+      prefs = rows[0];
+    } catch {
+      // La table ou une colonne est absente → on continue avec les valeurs par défaut
+      prefs = undefined;
+    }
 
-  const prompt = `Chef québécois. Menu 7 jours pour ${preferences.numberOfPeople} personne(s). Seed:${seed}.
+    const preferences = prefs ?? {
+      cookingTimePerDay: 45,
+      weeklyBudget: 150,
+      numberOfPeople: 2,
+      allergies: [] as string[],
+      dietaryPreferences: [] as string[],
+      cuisinePreferences: [] as string[],
+      mealTypes: ["breakfast", "lunch", "dinner"] as string[],
+      difficultyPreference: "Moyen",
+    };
 
-PROFIL: budget ${preferences.weeklyBudget}$/sem, ${preferences.cookingTimePerDay} min/jour, allergies: ${preferences.allergies.length > 0 ? preferences.allergies.join(", ") : "aucune"}, régime: ${preferences.dietaryPreferences.length > 0 ? preferences.dietaryPreferences.join(", ") : "aucun"}, cuisines: ${preferences.cuisinePreferences.length > 0 ? preferences.cuisinePreferences.join(", ") : "variées"}.
+    const selectedMeals = preferences.mealTypes && preferences.mealTypes.length > 0
+      ? preferences.mealTypes as string[]
+      : ["breakfast", "lunch", "dinner"];
+    const mealLabels: Record<string, string> = {
+      breakfast: "déjeuner (matin)",
+      lunch: "dîner (midi)",
+      dinner: "souper (soir)",
+    };
+    const mealsToGenerate = selectedMeals
+      .map((k) => mealLabels[k] ?? k)
+      .join(", ");
+
+    const ingredientList = ingredients.length > 0
+      ? ingredients.map(i => `${i.name} (${i.quantity} ${i.unit})`).join(", ")
+      : "Aucun ingrédient spécifié – proposer des repas simples avec des ingrédients courants";
+
+    const seed = Math.floor(Math.random() * 1_000_000);
+
+    const prompt = `Chef québécois. Menu 7 jours pour ${preferences.numberOfPeople} personne(s). Seed:${seed}.
+
+PROFIL: budget ${preferences.weeklyBudget}$/sem, ${preferences.cookingTimePerDay} min/jour, allergies: ${(preferences.allergies as string[]).length > 0 ? (preferences.allergies as string[]).join(", ") : "aucune"}, régime: ${(preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun"}, cuisines: ${(preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées"}.
 Frigo: ${ingredientList}.
 Repas à générer: ${mealsToGenerate}. Repas non demandés = null.
 Difficulté: ${preferences.difficultyPreference ?? "Moyen"} (Facile≤25min, Moyen 25-40min, Avancé>40min).
@@ -117,21 +143,9 @@ RÈGLES:
 - Description: 1 phrase courte (max 12 mots).
 
 JSON UNIQUEMENT (sans markdown):
-{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["200g poulet","1 citron"],"instructions":["Faire revenir 5 min.","Servir sur riz."],"estimatedCost":5.00,"difficultyLevel":"Facile"},"lunch":MÊME_FORMAT_OU_null,"dinner":MÊME_FORMAT_OU_null},…7 jours…],"estimatedCost":120.00}`;
+{"days":[{"dayName":"Lundi","breakfast":{"name":"...","description":"...","cookingTime":15,"servings":${preferences.numberOfPeople},"ingredients":["200g poulet","1 citron"],"instructions":["Faire revenir 5 min.","Servir sur riz."],"estimatedCost":5.00,"difficultyLevel":"Facile"},"lunch":MÊME_FORMAT_OU_null,"dinner":MÊME_FORMAT_OU_null},{"dayName":"Mardi",...},{"dayName":"Mercredi",...},{"dayName":"Jeudi",...},{"dayName":"Vendredi",...},{"dayName":"Samedi",...},{"dayName":"Dimanche",...}],"estimatedCost":120.00}`;
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  res.flushHeaders();
 
-  const send = (data: object) => {
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  };
-
-  send({ status: "start" });
-
-  try {
     const { client: openai, model } = getOpenAI();
     req.log.info({ model }, "Generating menu with model");
 
