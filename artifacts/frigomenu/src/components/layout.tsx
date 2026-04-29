@@ -32,7 +32,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Refrigerator className="w-6 h-6 text-primary" />
           </div>
           <h1 className="text-2xl font-display font-bold text-foreground">
-            FrigoMenu
+            MonFrigo
           </h1>
         </div>
 

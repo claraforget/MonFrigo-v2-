@@ -17,7 +17,7 @@ import NotFound from "@/pages/not-found";
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
-// URL absolue du backend (ex: https://frigomenu-api.onrender.com).
+// URL absolue du backend (ex: https://monfrigo-api.onrender.com).
 // Vide en dev local sur Replit (l'API est sur le même domaine via le proxy).
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 if (apiBaseUrl) {

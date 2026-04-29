@@ -39,7 +39,7 @@ export default function ShoppingPage() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text("FrigoMenu — Liste d'épicerie", marginL, 9);
+    doc.text("MonFrigo — Liste d'épicerie", marginL, 9);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(new Date().toLocaleDateString("fr-CA", { weekday: "long", year: "numeric", month: "long", day: "numeric" }), pageW - marginR, 9, { align: "right" });
@@ -100,9 +100,9 @@ export default function ShoppingPage() {
     // ── Footer ──
     doc.setFontSize(8);
     doc.setTextColor(160, 160, 160);
-    doc.text("Généré par FrigoMenu · frigomenu.ca", pageW / 2, 290, { align: "center" });
+    doc.text("Généré par MonFrigo · monfrigo.ca", pageW / 2, 290, { align: "center" });
 
-    doc.save("liste-epicerie-frigomenu.pdf");
+    doc.save("liste-epicerie-monfrigo.pdf");
   };
 
   return (

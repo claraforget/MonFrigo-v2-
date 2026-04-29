@@ -258,7 +258,7 @@ export default function MenuPage() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(74, 139, 84);
-    doc.text("FrigoMenu — Menu de la semaine", margin, y);
+    doc.text("MonFrigo — Menu de la semaine", margin, y);
     y += 8;
 
     doc.setFont("helvetica", "normal");
@@ -354,7 +354,7 @@ export default function MenuPage() {
       y += 4;
     }
 
-    doc.save("frigomenu-semaine.pdf");
+    doc.save("monfrigo-semaine.pdf");
   }, [data]);
 
   if (isLoading) return (
@@ -447,7 +447,7 @@ export default function MenuPage() {
 
       {/* Print header visible only in PDF */}
       <div className="hidden print:block mb-8 text-center border-b pb-4">
-        <h1 className="text-3xl font-bold">FrigoMenu - Votre semaine</h1>
+        <h1 className="text-3xl font-bold">MonFrigo - Votre semaine</h1>
         {hasMenu && <p className="text-gray-500 mt-2">Généré le {new Date(data.menu.generatedAt).toLocaleDateString('fr-CA')}</p>}
       </div>
 

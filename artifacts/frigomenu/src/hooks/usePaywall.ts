@@ -6,9 +6,29 @@ const FREE_GENERATIONS = 2;
 function keys(userId: string | null) {
   const suffix = userId ?? "anon";
   return {
-    count: `frigomenu_generation_count_${suffix}`,
-    sub: `frigomenu_subscribed_${suffix}`,
+    count: `monfrigo_generation_count_${suffix}`,
+    sub: `monfrigo_subscribed_${suffix}`,
   };
+}
+
+// Migration: move legacy "frigomenu_*" keys to "monfrigo_*" on first load
+function migrateLegacyKeys(userId: string | null) {
+  const suffix = userId ?? "anon";
+  const oldCount = `frigomenu_generation_count_${suffix}`;
+  const oldSub   = `frigomenu_subscribed_${suffix}`;
+  const newCount = `monfrigo_generation_count_${suffix}`;
+  const newSub   = `monfrigo_subscribed_${suffix}`;
+
+  const legacyCount = localStorage.getItem(oldCount);
+  const legacySub   = localStorage.getItem(oldSub);
+  if (legacyCount !== null) {
+    if (!localStorage.getItem(newCount)) localStorage.setItem(newCount, legacyCount);
+    localStorage.removeItem(oldCount);
+  }
+  if (legacySub !== null) {
+    if (!localStorage.getItem(newSub)) localStorage.setItem(newSub, legacySub);
+    localStorage.removeItem(oldSub);
+  }
 }
 
 export function usePaywall() {
@@ -29,6 +49,9 @@ export function usePaywall() {
 
   useEffect(() => {
     if (!isLoaded) return;
+    // Migrate old "frigomenu_*" localStorage keys to "monfrigo_*"
+    migrateLegacyKeys(userId);
+    migrateLegacyKeys(null); // also migrate anon keys
     const k = keys(userId);
     const anonK = keys(null);
 

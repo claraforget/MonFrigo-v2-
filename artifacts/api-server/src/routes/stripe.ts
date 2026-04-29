@@ -44,7 +44,7 @@ router.post("/stripe/create-checkout-session", async (req, res) => {
           price_data: {
             currency: "cad",
             product_data: {
-              name: "FrigoMenu Premium",
+              name: "MonFrigo Premium",
               description:
                 "Génération illimitée de menus personnalisés. Annulable à tout moment.",
             },
