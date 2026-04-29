@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Meal } from "@workspace/api-client-react/src/generated/api.schemas";
 import { usePaywall } from "@/hooks/usePaywall";
 import { PaywallModal } from "@/components/PaywallModal";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 
 function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal | null | undefined, forceOpen?: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -101,22 +101,33 @@ export default function MenuPage() {
   const queryClient = useQueryClient();
   const paywall = usePaywall();
   const { getToken } = useAuth();
+  const { isLoaded: clerkLoaded, isSignedIn } = useUser();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const prevMenuIdRef = useRef<number | null | undefined>(undefined);
   const pendingCountRef = useRef(false);
 
-  // Détecte le retour de Stripe (?paid=true) et active l'abonnement
+  // Étape 1 — Dès le montage : détecter ?paid=true, nettoyer l'URL et mémoriser en session
+  // (Clerk n'est pas encore chargé ici — ne pas appeler subscribe() maintenant)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("paid") === "true") {
-      paywall.subscribe();
+      sessionStorage.setItem("stripe_paid_pending", "true");
       params.delete("paid");
       const newUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
       window.history.replaceState({}, "", newUrl);
     }
   }, []);
+
+  // Étape 2 — Dès que Clerk est chargé et l'utilisateur connu : activer l'abonnement
+  useEffect(() => {
+    if (!clerkLoaded || !isSignedIn) return;
+    if (sessionStorage.getItem("stripe_paid_pending") === "true") {
+      sessionStorage.removeItem("stripe_paid_pending");
+      paywall.subscribe();
+    }
+  }, [clerkLoaded, isSignedIn]);
 
   // Décrémenter le compteur quand un NOUVEAU menu apparaît en DB (fiable même si SSE est coupé)
   useEffect(() => {
