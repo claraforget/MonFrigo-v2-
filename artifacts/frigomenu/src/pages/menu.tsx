@@ -469,6 +469,12 @@ export default function MenuPage() {
         onClose={() => paywall.setShowPaywall(false)}
       />
 
+      {/* Disclaimer alimentaire — Loi 25 / conformité légale */}
+      <div className="text-[11px] text-muted-foreground/50 text-center mt-2 no-print">
+        Les menus sont générés par IA à titre informatif seulement et ne constituent pas des conseils médicaux ou nutritionnels.{" "}
+        <a href="/terms" className="underline hover:text-primary transition-colors">Conditions d'utilisation</a>
+      </div>
+
 
       {/* Print header visible only in PDF */}
       <div className="hidden print:block mb-8 text-center border-b pb-4">

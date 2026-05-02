@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cookie, X, Shield } from "lucide-react";
+import { Link } from "wouter";
 
 const CONSENT_KEY = "monfrigo_cookie_consent";
 
@@ -13,7 +14,6 @@ export function CookieBanner() {
   useEffect(() => {
     const stored = localStorage.getItem(CONSENT_KEY);
     if (!stored) {
-      // Petit délai pour ne pas gêner le chargement initial
       const t = setTimeout(() => setVisible(true), 1200);
       return () => clearTimeout(t);
     }
@@ -48,11 +48,8 @@ export function CookieBanner() {
                     Votre vie privée nous importe
                   </h2>
                   <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                    MonFrigo utilise des témoins (cookies) pour le bon fonctionnement
-                    de l'authentification et la mémorisation de vos préférences.
-                    Conformément à la <strong>Loi 25 du Québec</strong> et au{" "}
-                    <strong>PIPEDA</strong>, nous vous informons de leur usage.
-                    {" "}
+                    MonFrigo utilise des témoins (cookies) pour le bon fonctionnement de l'authentification et la mémorisation de vos préférences.
+                    Conformément à la <strong>Loi 25 du Québec</strong> et au <strong>PIPEDA</strong>, nous vous informons de leur usage.{" "}
                     <button
                       onClick={() => setShowDetails(!showDetails)}
                       className="text-primary underline underline-offset-2 hover:no-underline focus:outline-none"
@@ -70,37 +67,18 @@ export function CookieBanner() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-3 grid sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
+                        <div className="mt-3 grid sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
                           {[
-                            {
-                              name: "Authentification (Clerk)",
-                              desc: "Session utilisateur sécurisée. Requis pour accéder à l'app.",
-                              required: true,
-                            },
-                            {
-                              name: "Préférences",
-                              desc: "Mémorise vos réglages locaux (thème, compteur gratuit).",
-                              required: true,
-                            },
-                            {
-                              name: "Stripe",
-                              desc: "Traitement sécurisé des paiements par abonnement.",
-                              required: false,
-                            },
+                            { name: "Authentification (Clerk)", desc: "Session utilisateur sécurisée. Requis pour accéder à l'app.", required: true },
+                            { name: "Préférences locales", desc: "Mémorise vos réglages d'interface et votre consentement.", required: true },
+                            { name: "Paiement (Stripe)", desc: "Traitement sécurisé des abonnements lors de l'achat.", required: false },
                           ].map((c) => (
-                            <div
-                              key={c.name}
-                              className="flex items-start gap-2 bg-muted/40 rounded-lg p-3"
-                            >
+                            <div key={c.name} className="flex items-start gap-2 bg-muted/40 rounded-lg p-3">
                               <Shield className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary/70" />
                               <div>
-                                <span className="font-medium text-foreground">
-                                  {c.name}
-                                </span>{" "}
+                                <span className="font-medium text-foreground">{c.name}</span>
                                 {c.required && (
-                                  <span className="text-[10px] bg-primary/10 text-primary rounded px-1 py-0.5 ml-1 font-medium">
-                                    Requis
-                                  </span>
+                                  <span className="text-[10px] bg-primary/10 text-primary rounded px-1 py-0.5 ml-1 font-medium">Requis</span>
                                 )}
                                 <p className="mt-0.5">{c.desc}</p>
                               </div>
@@ -108,13 +86,10 @@ export function CookieBanner() {
                           ))}
                         </div>
                         <p className="mt-3 text-[11px] text-muted-foreground/70">
-                          Vos données ne sont jamais vendues à des tiers. Pour toute question :{" "}
-                          <a
-                            href="mailto:privacy@monfrigo.ca"
-                            className="text-primary underline"
-                          >
-                            privacy@monfrigo.ca
-                          </a>
+                          Vos données ne sont jamais vendues à des tiers.{" "}
+                          <Link href="/privacy" className="text-primary underline">Politique de confidentialité</Link>
+                          {" · "}
+                          <Link href="/terms" className="text-primary underline">Conditions d'utilisation</Link>
                         </p>
                       </motion.div>
                     )}
@@ -130,7 +105,12 @@ export function CookieBanner() {
                 </button>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2 justify-end">
+              <div className="mt-4 flex flex-wrap gap-2 justify-end items-center">
+                <span className="text-[11px] text-muted-foreground/60 mr-auto hidden sm:block">
+                  <Link href="/privacy" className="hover:text-primary transition-colors underline underline-offset-2">Confidentialité</Link>
+                  {" · "}
+                  <Link href="/terms" className="hover:text-primary transition-colors underline underline-offset-2">Conditions</Link>
+                </span>
                 <button
                   onClick={() => save("declined")}
                   className="px-4 py-2 text-sm rounded-xl border border-border text-muted-foreground hover:bg-muted transition-colors"

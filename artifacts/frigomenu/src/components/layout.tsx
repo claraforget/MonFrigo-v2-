@@ -1,4 +1,5 @@
 import { Link, useLocation } from "wouter";
+import { ExternalLink } from "lucide-react";
 import { Refrigerator, Settings, CalendarRange, ShoppingCart, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
@@ -82,6 +83,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               <LogOut className="w-4 h-4" />
             </button>
+          </div>
+          <div className="flex flex-col gap-1 px-2 mt-2">
+            <Link href="/privacy" className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" /> Confidentialité
+            </Link>
+            <Link href="/terms" className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" /> Conditions d'utilisation
+            </Link>
           </div>
         </div>
       </aside>

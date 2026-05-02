@@ -14,6 +14,8 @@ import MenuPage from "@/pages/menu";
 import ShoppingPage from "@/pages/shopping";
 import NotFound from "@/pages/not-found";
 import { CookieBanner } from "@/components/CookieBanner";
+import PrivacyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
@@ -182,6 +184,8 @@ function ClerkProviderWithRoutes() {
           <Switch>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/privacy" component={PrivacyPage} />
+            <Route path="/terms" component={TermsPage} />
             <Route component={ProtectedApp} />
           </Switch>
           <Toaster />

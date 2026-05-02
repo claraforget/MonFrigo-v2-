@@ -191,7 +191,11 @@ export default function ShoppingPage() {
           </div>
 
           {!coords ? (
-            <div className="text-center py-8 bg-muted/20 rounded-3xl border border-border/40">
+            <div className="text-center py-6 bg-muted/20 rounded-3xl border border-border/40 px-4">
+              <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                Pour trouver les épiceries proches, MonFrigo a besoin d'accéder à votre position géographique.
+                Vos coordonnées sont utilisées <strong>uniquement en temps réel</strong> et ne sont jamais conservées sur nos serveurs.
+              </p>
               <Button onClick={requestLocation} disabled={isGeoLoading} className="w-full" size="lg">
                 {isGeoLoading ? "Localisation..." : "Autoriser la géolocalisation"}
               </Button>
@@ -260,6 +264,10 @@ export default function ShoppingPage() {
           ) : (
             <p className="text-center text-muted-foreground text-lg py-8">Aucune épicerie trouvée dans votre secteur.</p>
           )}
+        <p className="text-[11px] text-muted-foreground/50 text-center mt-4 px-2">
+          Les prix affichés sont des estimations indicatives et peuvent différer des prix réels en magasin.{" "}
+          <a href="/terms" className="underline hover:text-primary transition-colors">Conditions d'utilisation</a>
+        </p>
         </Card>
       </div>
     </div>

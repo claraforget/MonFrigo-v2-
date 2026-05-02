@@ -1,0 +1,97 @@
+⚖️ 1. Protection des données personnelles (OBLIGATOIRE)
+
+Au Québec, tu es soumise à la Loi 25.
+
+👉 Concrètement, tu dois :
+
+expliquer quelles données tu collectes (email, préférences, localisation, etc.)
+dire pourquoi (ex : générer menus, optimiser épicerie)
+obtenir un consentement clair
+permettre à l’utilisateur de :
+voir ses données
+demander leur suppression
+
+👉 Donc il te faut :
+✔️ une politique de confidentialité (privacy policy)
+✔️ une gestion du consentement (cookies + données)
+
+⚖️ 2. Conditions d’utilisation (très recommandé)
+
+Pas obligatoire, mais essentiel pour te protéger.
+
+👉 Ça sert à :
+
+limiter ta responsabilité
+encadrer l’utilisation de l’app
+éviter les abus
+
+Exemple important pour toi :
+👉 dire que tes recommandations alimentaires sont informatives, pas médicales
+
+⚖️ 3. Données sensibles (attention ⚠️)
+
+Ton app touche à :
+
+alimentation
+habitudes de vie
+potentiellement santé
+
+👉 Ça peut être considéré comme données sensibles
+
+Donc :
+
+sécurité renforcée
+transparence encore plus importante
+⚖️ 4. Géolocalisation
+
+Tu dis que ton app :
+👉 “te géolocalise pour trouver l’épicerie la moins chère”
+
+👉 Là, tu dois :
+
+demander un consentement explicite
+expliquer pourquoi tu utilises la localisation
+⚖️ 5. Marketing / Instagram / email
+
+Si tu fais :
+
+liste d’attente
+emails
+promos
+
+Tu dois respecter la CASL
+
+👉 donc :
+
+consentement avant d’envoyer emails
+option de désabonnement
+⚖️ 6. Transparence sur les prix (important pour ton concept)
+
+Si tu dis :
+👉 “meilleur prix” / “économies”
+
+Tu dois :
+
+éviter les promesses trompeuses
+idéalement indiquer :
+que c’est une estimation
+ou basé sur certaines données
+⚖️ 7. Sécurité (souvent négligé)
+
+Tu dois protéger :
+
+comptes utilisateurs
+données stockées
+
+👉 sinon :
+
+obligation de divulgation en cas de fuite (Loi 25)
+🎯 TL;DR (ce qu’il te faut MINIMUM)
+
+Avant lancement :
+
+✅ Politique de confidentialité
+✅ Consentement (cookies + données)
+✅ Conditions d’utilisation
+✅ Mention sur limites des recommandations
+✅ Consentement géolocalisation
