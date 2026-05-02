@@ -15,6 +15,7 @@ export const userPreferencesTable = pgTable(
     cuisinePreferences: text("cuisine_preferences").array().notNull().default([]),
     mealTypes: text("meal_types").array().notNull().default(["breakfast", "lunch", "dinner"]),
     difficultyPreference: text("difficulty_preference").notNull().default("Moyen"),
+    generationCount: integer("generation_count").notNull().default(0),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (t) => [uniqueIndex("user_preferences_user_id_unique").on(t.userId)],

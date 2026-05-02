@@ -1,12 +1,11 @@
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
-// Import nommé pour être compatible aussi bien avec esbuild (Replit) qu'avec
-// tsc/Render qui sont plus stricts sur l'interop ESM/CJS.
 import { pinoHttp } from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
+import { stripeWebhookHandler } from "./routes/stripeWebhook";
 
 const app: Express = express();
 
@@ -33,6 +32,10 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
+
+// Stripe webhook MUST receive raw body — register BEFORE express.json()
+app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

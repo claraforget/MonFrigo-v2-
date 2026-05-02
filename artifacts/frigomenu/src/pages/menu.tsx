@@ -129,6 +129,26 @@ export default function MenuPage() {
     }
   }, [clerkLoaded, isSignedIn]);
 
+  // Étape 2b — Synchronisation serveur : vérifier le vrai statut d'abonnement Stripe
+  // Corrige le cas où localStorage est vide (nouvel appareil, cache effacé, etc.)
+  useEffect(() => {
+    if (!clerkLoaded || !isSignedIn) return;
+    getToken().then((token) => {
+      if (!token) return;
+      const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+      fetch(`${apiBase}/api/stripe/subscription-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((data: { subscribed: boolean }) => {
+          if (data.subscribed && !paywall.isSubscribed) {
+            paywall.subscribe();
+          }
+        })
+        .catch(() => { /* non-bloquant */ });
+    });
+  }, [clerkLoaded, isSignedIn]);
+
   // Décrémenter le compteur quand un NOUVEAU menu apparaît en DB (fiable même si SSE est coupé)
   useEffect(() => {
     const currentId = data?.menu?.id ?? null;
@@ -200,7 +220,12 @@ export default function MenuPage() {
             const event = JSON.parse(json);
             if (event.status === "error") {
               sseError = true;
-              setGenerateError(event.message ?? "Erreur de génération");
+              if (event.code === "PAYWALL") {
+                pendingCountRef.current = false;
+                paywall.setShowPaywall(true);
+              } else {
+                setGenerateError(event.message ?? "Erreur de génération");
+              }
             }
           } catch {
             // chunk JSON invalide — ignorer

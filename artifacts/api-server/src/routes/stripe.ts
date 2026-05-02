@@ -1,5 +1,7 @@
 import { Router, type IRouter } from "express";
 import Stripe from "stripe";
+import { eq } from "drizzle-orm";
+import { db, userSubscriptionsTable } from "@workspace/db";
 import { logger } from "../lib/logger";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
@@ -145,6 +147,61 @@ router.post("/stripe/create-portal-session", async (req, res) => {
     const msg = err instanceof Error ? err.message : "Erreur inconnue";
     return res.status(500).json({ error: msg });
   }
+});
+
+// Vérifie le statut d'abonnement de l'utilisateur authentifié.
+// Cherche d'abord en DB (rapide), puis fallback Stripe pour récupérer les abonnés
+// qui ont payé avant que le webhook soit configuré.
+router.get("/stripe/subscription-status", requireAuth, async (req, res) => {
+  const userId = (req as AuthedRequest).userId;
+
+  // 1) Chercher en DB
+  const [subRow] = await db
+    .select()
+    .from(userSubscriptionsTable)
+    .where(eq(userSubscriptionsTable.userId, userId))
+    .limit(1);
+
+  const isActive = subRow?.status === "active" || subRow?.status === "canceling";
+  if (isActive) {
+    return res.json({
+      subscribed: true,
+      status: subRow!.status,
+      periodEnd: subRow!.currentPeriodEnd?.toISOString() ?? null,
+    });
+  }
+
+  // 2) Fallback : chercher directement chez Stripe (couvre les abonnés pré-webhook)
+  if (stripe) {
+    try {
+      const subs = await stripe.subscriptions.search({
+        query: `metadata['userId']:'${userId}' status:'active'`,
+        limit: 1,
+      });
+      const stripeSub = subs.data[0];
+      if (stripeSub) {
+        const periodEnd = new Date(stripeSub.current_period_end * 1000);
+        const customerId = typeof stripeSub.customer === "string" ? stripeSub.customer : stripeSub.customer.id;
+        // Synchroniser en DB pour les prochains appels
+        await db
+          .insert(userSubscriptionsTable)
+          .values({ userId, stripeCustomerId: customerId, stripeSubscriptionId: stripeSub.id, status: "active", currentPeriodEnd: periodEnd })
+          .onConflictDoUpdate({
+            target: userSubscriptionsTable.userId,
+            set: { status: "active", stripeCustomerId: customerId, stripeSubscriptionId: stripeSub.id, currentPeriodEnd: periodEnd, updatedAt: new Date() },
+          });
+        return res.json({ subscribed: true, status: "active", periodEnd: periodEnd.toISOString() });
+      }
+    } catch (e) {
+      logger.warn({ err: e }, "Stripe subscription lookup failed in status check");
+    }
+  }
+
+  return res.json({
+    subscribed: false,
+    status: subRow?.status ?? "inactive",
+    periodEnd: null,
+  });
 });
 
 router.post("/stripe/cancel-subscription", requireAuth, async (req, res) => {

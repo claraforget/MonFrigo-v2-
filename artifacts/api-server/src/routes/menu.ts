@@ -1,13 +1,15 @@
 import { Router, type IRouter } from "express";
 import OpenAI from "openai";
-import { db, fridgeIngredientsTable, userPreferencesTable, weeklyMenusTable } from "@workspace/db";
+import { db, fridgeIngredientsTable, userPreferencesTable, weeklyMenusTable, userSubscriptionsTable } from "@workspace/db";
 import {
   GenerateMenuResponse,
   GetCurrentMenuResponse,
   GetShoppingListResponse,
 } from "@workspace/api-zod";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
+
+const FREE_GENERATIONS = 2;
 
 const router: IRouter = Router();
 
@@ -72,6 +74,47 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
   const send = (data: object) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   };
+
+  // ── Enforcement paywall côté serveur ─────────────────────────────────────
+  let isServerSubscribed = false;
+  try {
+    const [subRow] = await db
+      .select()
+      .from(userSubscriptionsTable)
+      .where(eq(userSubscriptionsTable.userId, userId))
+      .limit(1);
+    isServerSubscribed = subRow?.status === "active" || subRow?.status === "canceling";
+  } catch { /* non-bloquant */ }
+
+  if (!isServerSubscribed) {
+    let currentCount = 0;
+    try {
+      const [prefRow] = await db
+        .select({ generationCount: userPreferencesTable.generationCount })
+        .from(userPreferencesTable)
+        .where(eq(userPreferencesTable.userId, userId))
+        .limit(1);
+      currentCount = prefRow?.generationCount ?? 0;
+    } catch { /* non-bloquant */ }
+
+    if (currentCount >= FREE_GENERATIONS) {
+      send({ status: "error", code: "PAYWALL", message: "Limite gratuite atteinte — abonnez-vous pour continuer." });
+      res.end();
+      return;
+    }
+
+    // Incrémenter atomiquement le compteur de générations
+    try {
+      await db
+        .insert(userPreferencesTable)
+        .values({ userId, generationCount: 1 })
+        .onConflictDoUpdate({
+          target: userPreferencesTable.userId,
+          set: { generationCount: sql`${userPreferencesTable.generationCount} + 1` },
+        });
+    } catch { /* non-bloquant */ }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   send({ status: "start" });
 
