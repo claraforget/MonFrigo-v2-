@@ -302,17 +302,37 @@ Chaque ingrédient DOIT inclure quantité + unité + nom précis + préparation:
 JAMAIS sans quantité — TOUJOURS: nombre + unité + nom + préparation
 
 ══════════════════════════════════════════
-INSTRUCTIONS — STYLE BLOGUE CULINAIRE QUÉBÉCOIS
-══════════════════════════════════════════
-Écrire comme Marilou (Trois fois par jour) ou Katrine Paradis (K pour Katrine) — chaleureux, précis, visuel, avec astuces:
-• Déjeuner: 3 étapes (max 40 mots/étape) — direct et engageant
-• Dîner: 3-4 étapes (max 55 mots/étape) — technique + conseil de prep avance
-• Souper: 5-6 étapes (max 75 mots/étape) — inclure: température exacte, durée, résultat visuel attendu, et 1 conseil de chef par étape
-EXEMPLES DE STYLE:
-✓ "Faire chauffer l'huile dans une grande poêle en fonte à feu vif. Ajouter les cuisses de poulet côté peau vers le bas — ne pas bouger pendant 6-7 min pour obtenir une peau bien dorée et croustillante."
-✓ "Déglacer avec le bouillon de poulet en grattant bien les sucs de cuisson caramélisés — c'est là que réside toute la saveur. Ajouter l'érable et la moutarde, laisser réduire 3-4 min à feu moyen."
-✓ "Servir dans des bols chauds, garnir généreusement de ciboulette fraîche, d'un filet d'huile d'olive et d'un tour de moulin à poivre. C'est le genre de plat qu'on mange en fermant les yeux."
-JAMAIS: "Cuire le poulet." "Faire revenir les légumes." — trop vague, trop fade.
+STYLE DES DESCRIPTIONS (champ "description") — CHALEUREUX ET APPÉTISSANT:
+Écrire une courte phrase évocatrice à la première personne, dans le ton d'un blogue culinaire québécois. La description doit donner envie, expliquer pourquoi ce plat est bon et mentionner 1-2 contrastes de saveurs/textures.
+✓ "J'adore l'équilibre de cette plaque — sucré des dattes, salé des olives et juste assez relevé. Tout cuit ensemble et le résultat est vraiment savoureux."
+✓ "Un risotto onctueux qui sent bon le beurre et les champignons sauvages — le bacon croustillant ajoute ce petit quelque chose qui change tout."
+✓ "Mon bol préféré pour les soirs pressés : frais, coloré et prêt en 20 minutes. La vinaigrette tahini-gingembre est absolument addictive."
+✗ JAMAIS: "Ce plat est délicieux et nutritif." (trop générique) ✗ JAMAIS: "Un repas équilibré pour toute la famille." (vide)
+
+INSTRUCTIONS — STANDARD BLOGUE (Trois fois par jour, K pour Katrine):
+• Températures en °F (non en °C): "Préchauffer le four à 425 °F"
+• Mentionner la position de grille: "placer la grille au centre" / "au tiers supérieur"
+• Détails techniques précis: "Tapisser une plaque de papier parchemin", "arroser du jus de cuisson", "masser les ingrédients pour bien répartir la marinade", "terminer à broil 3 minutes jusqu'à ce que le poulet soit bien doré"
+• Résultat visuel dans chaque étape: "jusqu'à ce que les légumes ramollissent et commencent à caraméliser", "la peau doit être bien dorée et croustillante"
+• Conseil de chef naturel (1 par étape souper): "Ne pas bouger la viande pendant les premières minutes pour obtenir une belle coloration."
+EXEMPLES COMPLETS:
+✓ "Préchauffer le four à 425 °F et placer la grille au centre. Tapisser une grande plaque à biscuits de papier parchemin."
+✓ "Dans un grand bol, fouetter l'huile, l'érable, la moutarde et les épices pour former la marinade. Ajouter le poulet et les légumes, puis masser généreusement pour bien répartir."
+✓ "Étaler en une couche uniforme sur la plaque. Cuire 25 minutes, arroser du jus de cuisson, puis terminer à broil 3 minutes pour dorer le dessus."
+✓ "Garnir de ciboulette fraîche et d'un bon zeste de citron. Servir directement sur la plaque — c'est le genre de plat qu'on met au centre de la table."
+JAMAIS: "Cuire le poulet." ou "Faire revenir les légumes." — trop vague et sans vie.
+
+VIANDES TRANSFORMÉES — RÉDUIRE FORTEMENT:
+• LIMITER à max 1x/semaine: bacon, lardons, pancetta, saucisse italienne, chorizo, jambon, pepperoni, saucisse merguez
+• FAVORISER: cuisses de poulet désossées, filets de poisson, bœuf haché extra-maigre, filet de porc, crevettes
+• PRIVILÉGIER protéines végétales riches: edamame, miso, tempeh, tofu, lentilles, pois chiches, haricots, seitan, nutritional yeast (levure nutritionnelle)
+
+INGRÉDIENTS SANTÉ & UMAMI À UTILISER RÉGULIÈREMENT:
+• Fermentés & probiotiques: miso blanc ou rouge, kimchi, kéfir, yogourt nature, tempeh, kombucha (dans marinades)
+• Légumes oubliés: edamame, pak choi, bok choy, fenouil, betterave, panais, céleri-rave, topinambour, butternut
+• Protéines végétales: levure nutritionnelle (saveur fromagée), graines de chanvre, spiruline (smoothies)
+• Aromates umami: pâte de miso, sauce miso, bouillon dashi, algues nori, kombu
+• Glucides sains: orge perlé, sarrasin (kasha), farro, boulgour, patate douce violette, châtaigne d'eau
 
 ══════════════════════════════════════════
 NUTRITION JOURNALIÈRE — OBLIGATOIRE
@@ -1224,11 +1244,19 @@ const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
       "haricot pinto", "fève", "feve", "edamame", "soya", "soja", "tofu", "tempeh",
     ],
   },
+  // Champignons — AVANT Noix (sinon "champignon" match "pignon" et "shiitake" match rien de bon)
+  {
+    category: "Légumes",
+    keywords: [
+      "champignon", "shiitake", "portobello", "cremini", "pleurote", "chanterelle",
+      "girolles", "morille", "cèpe", "cepe", "bolet", "pak choi", "bok choy",
+    ],
+  },
   // Noix et graines (avant Épices)
   {
     category: "Noix & Graines",
     keywords: [
-      "amande", "noix", "noisette", "pistache", "cajou", "pacane", "pignon",
+      "amande", "noix de", "noisette", "pistache", "cajou", "pacane", "pignon de pin",
       "graine de tournesol", "graine de citrouille", "graine de chia", "graine de lin",
       "graine de sésame", "sésame", "sesame", "arachide", "pépite",
     ],

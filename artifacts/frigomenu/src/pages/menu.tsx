@@ -1,7 +1,7 @@
 import { useGetCurrentMenu, useDeleteCurrentMenu } from "@workspace/api-client-react";
 import { Card, Button } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Printer, Clock, DollarSign, ChevronDown, Trash2, Users, CalendarRange } from "lucide-react";
+import { Sparkles, Printer, Clock, DollarSign, ChevronDown, Trash2, Users, CalendarRange, Activity } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
@@ -144,6 +144,65 @@ function MealCard({ meal, type }: { meal: Meal | null | undefined; type: "breakf
                   </span>
                 )}
               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+type DailyNutrition = { calories?: number; proteinG?: number; carbsG?: number; fatG?: number; fiberG?: number };
+
+function NutritionPanel({ nutrition }: { nutrition: DailyNutrition | undefined }) {
+  const [open, setOpen] = useState(false);
+  if (!nutrition) return null;
+  const pills = [
+    { v: `${nutrition.calories ?? "—"}`, label: "kcal", bar: null, cls: "text-amber-700 dark:text-amber-300", bg: "bg-amber-400" },
+    { v: `${nutrition.proteinG ?? "—"}g`, label: "Protéines", bar: Math.min(100, ((nutrition.proteinG ?? 0) / 60) * 100), cls: "text-blue-700 dark:text-blue-300", bg: "bg-blue-400" },
+    { v: `${nutrition.carbsG ?? "—"}g`, label: "Glucides", bar: Math.min(100, ((nutrition.carbsG ?? 0) / 250) * 100), cls: "text-orange-700 dark:text-orange-300", bg: "bg-orange-400" },
+    { v: `${nutrition.fatG ?? "—"}g`, label: "Lipides", bar: Math.min(100, ((nutrition.fatG ?? 0) / 70) * 100), cls: "text-yellow-700 dark:text-yellow-300", bg: "bg-yellow-400" },
+    { v: `${nutrition.fiberG ?? "—"}g`, label: "Fibres", bar: Math.min(100, ((nutrition.fiberG ?? 0) / 28) * 100), cls: "text-green-700 dark:text-green-300", bg: "bg-green-500" },
+  ];
+  return (
+    <div className="border-t border-border/15">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-3 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+      >
+        <span className="flex items-center gap-2 font-semibold group-hover:text-primary transition-colors">
+          <Activity className="w-3.5 h-3.5" />
+          Bilan nutritionnel de la journée
+        </span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="nut"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <div className="px-5 pb-5 pt-1 space-y-3">
+              {/* Calories big stat */}
+              <div className="flex items-baseline gap-2 pb-2 border-b border-border/15">
+                <span className="text-2xl font-display font-bold text-foreground">{nutrition.calories ?? "—"}</span>
+                <span className="text-sm text-muted-foreground">kcal / jour</span>
+              </div>
+              {/* Macro bars */}
+              {pills.filter(p => p.bar !== null).map(p => (
+                <div key={p.label} className="flex items-center gap-3">
+                  <span className={`text-xs font-semibold w-16 shrink-0 ${p.cls}`}>{p.label}</span>
+                  <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${p.bg}`} style={{ width: `${p.bar}%` }} />
+                  </div>
+                  <span className="text-xs font-bold text-foreground w-10 text-right">{p.v}</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-muted-foreground/50 pt-1">Valeurs estimées · % calculé sur apports journaliers de référence.</p>
             </div>
           </motion.div>
         )}
@@ -570,28 +629,11 @@ export default function MenuPage() {
             return (
               <Card key={idx} className="p-0 overflow-hidden print-break-inside-avoid shadow-sm hover:shadow-md transition-shadow">
                 <div className="bg-gradient-to-r from-primary/8 to-transparent px-7 py-5 border-b border-primary/10">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
-                    <div className="flex items-center gap-3 shrink-0">
-                      <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
-                        <CalendarRange className="w-4.5 h-4.5 text-primary" />
-                      </div>
-                      <h2 className="text-2xl font-display font-bold text-primary">{day.dayName}</h2>
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                      <CalendarRange className="w-4.5 h-4.5 text-primary" />
                     </div>
-                    {nutrition && (
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { v: `${nutrition.calories ?? "—"}`, label: "kcal", cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/50" },
-                          { v: `${nutrition.proteinG ?? "—"}g`, label: "prot.", cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800/50" },
-                          { v: `${nutrition.carbsG ?? "—"}g`, label: "gluc.", cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800/50" },
-                          { v: `${nutrition.fatG ?? "—"}g`, label: "lip.", cls: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-300 dark:border-yellow-800/50" },
-                          { v: `${nutrition.fiberG ?? "—"}g`, label: "fibres", cls: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-800/50" },
-                        ].map(p => (
-                          <span key={p.label} className={`inline-flex items-baseline gap-1 px-2.5 py-0.5 rounded-full text-[11px] border font-medium ${p.cls}`}>
-                            <strong className="font-bold">{p.v}</strong> {p.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                    <h2 className="text-2xl font-display font-bold text-primary">{day.dayName}</h2>
                   </div>
                 </div>
                 <div className="p-4 sm:p-6 space-y-3 bg-card">
@@ -599,6 +641,7 @@ export default function MenuPage() {
                   <MealCard type="lunch" meal={day.lunch} />
                   <MealCard type="dinner" meal={day.dinner} />
                 </div>
+                <NutritionPanel nutrition={nutrition} />
               </Card>
             );
           })}
