@@ -580,46 +580,566 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
     };
   }
 
-  function toGroceryFormat(p: Parsed): { quantity: string; unit: string; price: number } {
+  // Retourne null si c'est un ingrédient de base/garde-manger (pas à acheter chaque semaine)
+  function isPantryStaple(n: string, rawUnit: string): boolean {
+    // Épices & assaisonnements en petite quantité
+    if (/cumin|paprika|curcuma|cannelle|origan|thym|basilic seche|piment|poivre|sel |cayenne|cari|garam|zaatar|sumac|harissa|coriandre moulue|curcuma|cardamome|muscade|gingembre moulu|ail en poudre|oignon en poudre|fenugrec|anis|herbes de provence|italian seasoning/.test(n)) return true;
+    // Condiments très petites quantités
+    if ((rawUnit === "c. a soupe" || rawUnit === "c. a the" || rawUnit === "pincee" || rawUnit === "ml") && /moutarde|sauce worcestershire|sauce pimente|sauce fish|pate miso|sambal|tahini|wasabi/.test(n)) return true;
+    return false;
+  }
+
+  function toGroceryFormat(p: Parsed): { quantity: string; unit: string; price: number } | null {
     const n = p.groupKey;
+
+    // ── Ingrédients de base / garde-manger → exclure de la liste ──────────────
+    if (isPantryStaple(n, p.rawUnit)) return null;
+
+    // ── Ingrédients basés en grammes ──────────────────────────────────────────
     if (p.totalG > 0) {
       const g = p.totalG;
-      if (/poulet|dinde|veau|porc(?!el)|agneau|boeuf|bœuf/.test(n))    return { quantity: `${Math.max(1, Math.ceil(g / 450))}`, unit: "paquet(s) 450 g",  price: Math.max(1, Math.ceil(g / 450)) * 7.99 };
-      if (/saumon|tilapia|morue|dore|doré|truite|poisson|flétan|sole|basa|mahi/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 400))}`, unit: "paquet(s) 400 g",  price: Math.max(1, Math.ceil(g / 400)) * 8.99 };
-      if (/crevette/.test(n))  return { quantity: `${Math.max(1, Math.ceil(g / 340))}`, unit: "sac(s) 340 g",    price: Math.max(1, Math.ceil(g / 340)) * 9.99 };
-      if (/tofu/.test(n))      return { quantity: `${Math.max(1, Math.ceil(g / 350))}`, unit: "bloc(s) 350 g",   price: Math.max(1, Math.ceil(g / 350)) * 3.49 };
-      if (/tempeh/.test(n))    return { quantity: `${Math.max(1, Math.ceil(g / 240))}`, unit: "paquet(s) 240 g", price: Math.max(1, Math.ceil(g / 240)) * 4.49 };
-      if (/fromage|mozzarella|cheddar|parmesan|feta|feta|ricotta/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 250))}`, unit: "bloc(s) 250 g", price: Math.max(1, Math.ceil(g / 250)) * 5.49 };
-      if (/beurre(?! d)/.test(n))  return { quantity: `${Math.max(1, Math.ceil(g / 250))}`, unit: "plaquette(s) 250 g", price: Math.max(1, Math.ceil(g / 250)) * 4.29 };
-      if (/epinard|roquette|mache|laitue/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 142))}`, unit: "contenant(s) 142 g", price: Math.max(1, Math.ceil(g / 142)) * 3.99 };
-      if (/farine|sucre/.test(n))  return { quantity: `${Math.max(1, Math.ceil(g / 1000))}`, unit: "sac(s) 1 kg",   price: Math.max(1, Math.ceil(g / 1000)) * 4.49 };
-      if (/riz|pate|avoine|gruau|quinoa|couscous|lentille/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 900))}`, unit: "sac(s) 900 g", price: Math.max(1, Math.ceil(g / 900)) * 4.99 };
-      const rounded = Math.ceil(g / 100) * 100;
-      return { quantity: `${rounded} g`, unit: "", price: Math.ceil(g / 100) * 1.50 };
+
+      // Viandes & volailles (formats plateaux IGA/Metro)
+      if (/poitrine de poulet|poitrines de poulet/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 700));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 700 g (~2 poitrines)`, price: pkgs * 11.99 };
+      }
+      if (/cuisse de poulet|cuisses de poulet/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 1000));
+        return { quantity: String(pkgs), unit: `sac${pkgs > 1 ? "s" : ""} 1 kg (~5 cuisses)`, price: pkgs * 9.49 };
+      }
+      if (/poulet hache|poulet haché/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 500 g`, price: pkgs * 6.99 };
+      }
+      if (/poulet/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 700));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 700 g`, price: pkgs * 10.99 };
+      }
+      if (/boeuf hache|bœuf hache|boeuf haché|bœuf haché/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 500 g`, price: pkgs * 7.99 };
+      }
+      if (/boeuf|bœuf/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 450));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 450 g`, price: pkgs * 9.49 };
+      }
+      if (/porc hache|porc haché/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 500 g`, price: pkgs * 6.49 };
+      }
+      if (/filet de porc|longe de porc/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 500 g`, price: pkgs * 7.49 };
+      }
+      if (/porc/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 500 g`, price: pkgs * 6.99 };
+      }
+      if (/dinde hachee|dinde hachée/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 500 g`, price: pkgs * 6.49 };
+      }
+      if (/saucisse italienne|saucisse/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 500));
+        return { quantity: String(pkgs), unit: `paquet${pkgs > 1 ? "s" : ""} 500 g (~5 saucisses)`, price: pkgs * 7.49 };
+      }
+      if (/bacon|lardons|pancetta/.test(n)) {
+        return { quantity: "1", unit: "paquet 375 g", price: 6.99 };
+      }
+      if (/agneau/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 400));
+        return { quantity: String(pkgs), unit: `plateau${pkgs > 1 ? "x" : ""} 400 g`, price: pkgs * 11.99 };
+      }
+
+      // Poissons & fruits de mer (formats IGA/Metro/Maxi)
+      if (/saumon/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 450));
+        return { quantity: String(pkgs), unit: `paquet${pkgs > 1 ? "s" : ""} 450 g (2 pavés)`, price: pkgs * 13.99 };
+      }
+      if (/tilapia/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 700));
+        return { quantity: String(pkgs), unit: `sac${pkgs > 1 ? "s" : ""} surgelé 700 g`, price: pkgs * 9.99 };
+      }
+      if (/morue|pangasius|basa/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 400));
+        return { quantity: String(pkgs), unit: `sac${pkgs > 1 ? "s" : ""} surgelé 400 g`, price: pkgs * 8.49 };
+      }
+      if (/crevette/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 340));
+        return { quantity: String(pkgs), unit: `sac${pkgs > 1 ? "s" : ""} surgelé 340 g`, price: pkgs * 9.99 };
+      }
+      if (/thon/.test(n) && !/frais/.test(n)) {
+        const cans = Math.max(1, Math.ceil(g / 170));
+        return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 170 g`, price: cans * 2.49 };
+      }
+      if (/truite|doré|dore|flétan|fletan|mahi|sole|poisson/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 400));
+        return { quantity: String(pkgs), unit: `paquet${pkgs > 1 ? "s" : ""} 400 g`, price: pkgs * 10.99 };
+      }
+
+      // Tofu, tempeh & protéines végétales
+      if (/tofu/.test(n)) {
+        const blocs = Math.max(1, Math.ceil(g / 350));
+        return { quantity: String(blocs), unit: `bloc${blocs > 1 ? "s" : ""} 350 g (Sunrise/Nature's Best)`, price: blocs * 3.49 };
+      }
+      if (/tempeh/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 240));
+        return { quantity: String(pkgs), unit: `paquet${pkgs > 1 ? "s" : ""} 240 g`, price: pkgs * 4.99 };
+      }
+      if (/seitan/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 250));
+        return { quantity: String(pkgs), unit: `paquet${pkgs > 1 ? "s" : ""} 250 g`, price: pkgs * 5.49 };
+      }
+      if (/edamame/.test(n)) {
+        return { quantity: "1", unit: "sac surgelé 500 g", price: 3.99 };
+      }
+
+      // Fromages (formats blocs IGA/Metro)
+      if (/parmesan/.test(n)) {
+        return { quantity: "1", unit: "sachet râpé 200 g (Galbani/Stella)", price: 5.99 };
+      }
+      if (/feta/.test(n)) {
+        return { quantity: "1", unit: "bloc en saumure 200 g", price: 4.99 };
+      }
+      if (/cheddar/.test(n)) {
+        return { quantity: "1", unit: "bloc 400 g (Black Diamond/Perron)", price: 6.99 };
+      }
+      if (/mozzarella/.test(n)) {
+        return { quantity: "1", unit: "bloc 400 g ou bocconcini 200 g", price: 5.49 };
+      }
+      if (/ricotta/.test(n)) {
+        return { quantity: "1", unit: "pot 475 g", price: 4.99 };
+      }
+      if (/fromage a la creme|fromage a la crème|fromage creme/.test(n)) {
+        return { quantity: "1", unit: "bloc 250 g (Philadelphia)", price: 4.49 };
+      }
+      if (/fromage en grains|fromage grains/.test(n)) {
+        return { quantity: "1", unit: "sac 400 g", price: 5.99 };
+      }
+      if (/fromage/.test(n)) {
+        return { quantity: "1", unit: "bloc 400 g", price: 6.49 };
+      }
+
+      // Beurre (format 454 g = standard canadien, pas 250 g)
+      if (/beurre(?! d[e'])/.test(n)) {
+        return { quantity: "1", unit: "plaquette 454 g (4 bâtons)", price: 5.99 };
+      }
+
+      // Légumes feuilles
+      if (/epinard|épinard/.test(n)) {
+        const bags = Math.max(1, Math.ceil(g / 142));
+        return { quantity: String(bags), unit: `sac${bags > 1 ? "s" : ""} 142 g (bébé épinards)`, price: bags * 3.99 };
+      }
+      if (/roquette/.test(n)) {
+        return { quantity: "1", unit: "sac 142 g", price: 3.99 };
+      }
+      if (/chou kale|kale/.test(n)) {
+        return { quantity: "1", unit: "botte 200 g", price: 3.49 };
+      }
+      if (/laitue|mesclun|verdure/.test(n)) {
+        return { quantity: "1", unit: "contenant 142 g", price: 3.99 };
+      }
+
+      // Champignons
+      if (/champignon/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 227));
+        return { quantity: String(pkgs), unit: `barquette${pkgs > 1 ? "s" : ""} 227 g`, price: pkgs * 3.49 };
+      }
+
+      // Tomates cerises/raisins
+      if (/tomates? cerises?|tomates? raisins?/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 227));
+        return { quantity: String(pkgs), unit: `barquette${pkgs > 1 ? "s" : ""} 227 g`, price: pkgs * 3.99 };
+      }
+
+      // Brocoli
+      if (/brocoli/.test(n)) {
+        return { quantity: "1", unit: "tête (~450 g)", price: 2.99 };
+      }
+      // Chou-fleur
+      if (/chou-fleur|choufleur/.test(n)) {
+        return { quantity: "1", unit: "tête (~800 g)", price: 4.49 };
+      }
+      // Céleri
+      if (/celeri|céleri/.test(n)) {
+        return { quantity: "1", unit: "pied de céleri", price: 2.99 };
+      }
+
+      // Féculents & grains (formats sacs épicerie)
+      if (/riz arborio/.test(n)) {
+        return { quantity: "1", unit: "sac 900 g (Zijaan/President's Choice)", price: 4.49 };
+      }
+      if (/riz basmati|riz jasmin|riz long|riz brun|riz/.test(n)) {
+        const bags = Math.max(1, Math.ceil(g / 2000));
+        return { quantity: String(bags), unit: `sac${bags > 1 ? "s" : ""} 2 kg (Mahatma/PC)`, price: bags * 5.99 };
+      }
+      if (/pate[s]? |pâte[s]? /.test(n) || /spaghetti|penne|linguine|rigatoni|fusilli|fettuccine|macaroni/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 450));
+        return { quantity: String(pkgs), unit: `boîte${pkgs > 1 ? "s" : ""} 450 g (Barilla/Catelli)`, price: pkgs * 2.49 };
+      }
+      if (/quinoa/.test(n)) {
+        const pkgs = Math.max(1, Math.ceil(g / 340));
+        return { quantity: String(pkgs), unit: `sac${pkgs > 1 ? "s" : ""} 340 g (Alter Eco/PC)`, price: pkgs * 4.99 };
+      }
+      if (/couscous/.test(n)) {
+        return { quantity: "1", unit: "boîte 500 g (Near East/PC)", price: 3.49 };
+      }
+      if (/avoine|flocons d.avoine|gruau/.test(n)) {
+        return { quantity: "1", unit: "boîte 1.35 kg (Quaker Gros Flocons)", price: 5.49 };
+      }
+      if (/lentille/.test(n) && !/boite|boîte|conserve/.test(p.rawUnit)) {
+        return { quantity: "1", unit: "sac 900 g", price: 3.99 };
+      }
+      if (/farine/.test(n)) {
+        return { quantity: "1", unit: "sac 2 kg (Robin Hood/Five Roses)", price: 4.99 };
+      }
+      if (/sucre/.test(n)) {
+        return { quantity: "1", unit: "sac 2 kg (Redpath)", price: 4.49 };
+      }
+      if (/panko|chapelure/.test(n)) {
+        return { quantity: "1", unit: "sac 227 g", price: 2.99 };
+      }
+
+      // Noix & graines
+      if (/noix de grenoble|noix grenoble/.test(n)) {
+        return { quantity: "1", unit: "sac 200 g", price: 5.99 };
+      }
+      if (/amande/.test(n)) {
+        return { quantity: "1", unit: "sac 200 g", price: 4.99 };
+      }
+      if (/noix de cajou|cajou/.test(n)) {
+        return { quantity: "1", unit: "sac 200 g", price: 5.49 };
+      }
+      if (/graine de chia|chia/.test(n)) {
+        return { quantity: "1", unit: "sac 300 g", price: 5.99 };
+      }
+      if (/graine de lin|lin/.test(n)) {
+        return { quantity: "1", unit: "sac 500 g", price: 4.99 };
+      }
+      if (/graine de sesame|sesame/.test(n)) {
+        return { quantity: "1", unit: "sac 100 g", price: 2.99 };
+      }
+      if (/pacane/.test(n)) {
+        return { quantity: "1", unit: "sac 200 g", price: 7.49 };
+      }
+      if (/pistache/.test(n)) {
+        return { quantity: "1", unit: "sac 200 g", price: 6.49 };
+      }
+      if (/granola/.test(n)) {
+        return { quantity: "1", unit: "sac 454 g (Nature Valley/PC)", price: 5.99 };
+      }
+
+      // Beurre de noix
+      if (/beurre d.amande|beurre amande/.test(n)) {
+        return { quantity: "1", unit: "pot 500 g", price: 8.99 };
+      }
+      if (/beurre d.arachide|beurre arachide/.test(n)) {
+        return { quantity: "1", unit: "pot 1 kg (Kraft/Skippy)", price: 7.99 };
+      }
+
+      // Légumes en poids génériques
+      const rounded100 = Math.ceil(g / 100) * 100;
+      return { quantity: `${rounded100} g`, unit: "au poids (vrac/section légumes)", price: Math.ceil(g / 100) * 1.80 };
     }
+
+    // ── Ingrédients basés en millilitres ──────────────────────────────────────
     if (p.totalMl > 0) {
       const ml = p.totalMl;
-      if (/lait(?! de coco)/.test(n))  return { quantity: `${Math.max(1, Math.ceil(ml / 2000))}`, unit: "carton(s) 2 L",   price: Math.max(1, Math.ceil(ml / 2000)) * 5.49 };
-      if (/bouillon/.test(n))           return { quantity: `${Math.max(1, Math.ceil(ml / 900))}`,  unit: "carton(s) 900 ml",price: Math.max(1, Math.ceil(ml / 900)) * 3.49 };
-      if (/lait de coco|creme de coco/.test(n)) return { quantity: `${Math.max(1, Math.ceil(ml / 400))}`, unit: "boîte(s) 400 ml", price: Math.max(1, Math.ceil(ml / 400)) * 2.99 };
-      if (/creme|crème/.test(n))        return { quantity: `${Math.max(1, Math.ceil(ml / 473))}`,  unit: "contenant(s) 473 ml", price: Math.max(1, Math.ceil(ml / 473)) * 3.99 };
-      if (/passata|sauce tomate|coulis/.test(n)) return { quantity: `${Math.max(1, Math.ceil(ml / 680))}`, unit: "bocal(s) 680 ml", price: Math.max(1, Math.ceil(ml / 680)) * 2.99 };
-      if (/huile/.test(n))              return { quantity: "1", unit: "bouteille 750 ml", price: 7.99 };
-      if (/tamari|sauce soya|soya/.test(n)) return { quantity: "1", unit: "bouteille 250 ml", price: 4.99 };
-      if (/vinaigre/.test(n))           return { quantity: "1", unit: "bouteille 500 ml", price: 3.99 };
+
+      // Produits laitiers liquides
+      if (/lait(?! de coco)/.test(n)) {
+        if (ml <= 1000) return { quantity: "1", unit: "carton 1 L (Québon/Lactantia)", price: 2.99 };
+        if (ml <= 2000) return { quantity: "1", unit: "carton 2 L (Québon/Lactantia)", price: 4.29 };
+        return { quantity: "1", unit: "carton 4 L (Québon/Lactantia)", price: 6.49 };
+      }
+      if (/creme sure|crème sure|creme aigre/.test(n)) {
+        return { quantity: "1", unit: "pot 500 mL (Sealtest/Beatrice)", price: 3.49 };
+      }
+      if (/creme 35|creme a fouetter|crème 35|crème à fouetter/.test(n)) {
+        return { quantity: "1", unit: "carton 473 mL (Québon/Gay Lea)", price: 4.49 };
+      }
+      if (/creme 15|creme a cuisson|crème 15|crème cuisine/.test(n)) {
+        return { quantity: "1", unit: "carton 473 mL (Québon)", price: 3.49 };
+      }
+      if (/creme de coco|lait de coco/.test(n)) {
+        const cans = Math.max(1, Math.ceil(ml / 400));
+        return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 400 mL (Aroy-D/PC)`, price: cans * 2.49 };
+      }
+
+      // Bouillons (format carton 900 mL standard au Canada)
+      if (/bouillon de poulet|bouillon poulet/.test(n)) {
+        const cans = Math.max(1, Math.ceil(ml / 900));
+        return { quantity: String(cans), unit: `carton${cans > 1 ? "s" : ""} 900 mL (Swanson/PC)`, price: cans * 2.99 };
+      }
+      if (/bouillon de legumes|bouillon legumes|bouillon légumes/.test(n)) {
+        const cans = Math.max(1, Math.ceil(ml / 900));
+        return { quantity: String(cans), unit: `carton${cans > 1 ? "s" : ""} 900 mL (Swanson/PC)`, price: cans * 2.99 };
+      }
+      if (/bouillon de boeuf|bouillon boeuf|bouillon bœuf/.test(n)) {
+        const cans = Math.max(1, Math.ceil(ml / 900));
+        return { quantity: String(cans), unit: `carton${cans > 1 ? "s" : ""} 900 mL (Swanson)`, price: cans * 2.99 };
+      }
+      if (/bouillon/.test(n)) {
+        const cans = Math.max(1, Math.ceil(ml / 900));
+        return { quantity: String(cans), unit: `carton${cans > 1 ? "s" : ""} 900 mL`, price: cans * 2.99 };
+      }
+
+      // Tomates en boîte (format 796 mL = standard Canada chez IGA/Metro)
+      if (/tomate en des|tomates en dés|tomate en dé|tomates broyees|tomates broyées|tomate broyee|tomate entiere|tomates pelees|passata|coulis de tomate|sauce tomate/.test(n)) {
+        const cans = Math.max(1, Math.ceil(ml / 796));
+        return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 796 mL (Aylmer/Hunts)`, price: cans * 2.29 };
+      }
+
+      // Huiles
+      if (/huile d.olive|huile olive/.test(n)) {
+        return { quantity: "1", unit: "bouteille 500 mL (Bertolli/President's Choice)", price: 7.99 };
+      }
+      if (/huile de sesame|huile sesame/.test(n)) {
+        return { quantity: "1", unit: "bouteille 250 mL (Lee Kum Kee)", price: 5.49 };
+      }
+      if (/huile de coco|huile coco/.test(n)) {
+        return { quantity: "1", unit: "pot 414 mL (Nutiva/PC)", price: 8.99 };
+      }
+      if (/huile/.test(n)) {
+        return { quantity: "1", unit: "bouteille 750 mL", price: 6.99 };
+      }
+
+      // Condiments & sauces
+      if (/sauce tamari|tamari/.test(n)) {
+        return { quantity: "1", unit: "bouteille 250 mL (San-J/La Choy)", price: 4.99 };
+      }
+      if (/sauce soya|soja/.test(n)) {
+        return { quantity: "1", unit: "bouteille 250 mL (Kikkoman)", price: 2.99 };
+      }
+      if (/sauce sriracha|sriracha/.test(n)) {
+        return { quantity: "1", unit: "bouteille 482 mL (Huy Fong)", price: 4.99 };
+      }
+      if (/sauce worcestershire/.test(n)) {
+        return { quantity: "1", unit: "bouteille 142 mL (Lea & Perrins)", price: 3.49 };
+      }
+      if (/sauce poisson|fish sauce|nuoc-mam/.test(n)) {
+        return { quantity: "1", unit: "bouteille 200 mL", price: 3.99 };
+      }
+      if (/sirop d.erable|sirop erable|sirop d'érable/.test(n)) {
+        return { quantity: "1", unit: "bouteille 540 mL (sirop du Québec)", price: 12.99 };
+      }
+      if (/miel/.test(n)) {
+        return { quantity: "1", unit: "pot 500 g (Billy Bee/miel local)", price: 7.99 };
+      }
+      if (/vinaigre de cidre|vinaigre cidre/.test(n)) {
+        return { quantity: "1", unit: "bouteille 946 mL (Bragg/PC)", price: 4.99 };
+      }
+      if (/vinaigre balsamique|balsamique/.test(n)) {
+        return { quantity: "1", unit: "bouteille 500 mL", price: 5.99 };
+      }
+      if (/vinaigre de riz|vinaigre riz/.test(n)) {
+        return { quantity: "1", unit: "bouteille 355 mL (Marukan)", price: 3.99 };
+      }
+      if (/vinaigre/.test(n)) {
+        return { quantity: "1", unit: "bouteille 946 mL", price: 3.49 };
+      }
+      if (/moutarde de dijon|moutarde dijon/.test(n)) {
+        return { quantity: "1", unit: "pot 250 mL (Maille/President's Choice)", price: 3.49 };
+      }
+      if (/moutarde/.test(n)) {
+        return { quantity: "1", unit: "pot 400 mL (French's)", price: 2.99 };
+      }
+      if (/pate de tomates|pâte de tomates/.test(n)) {
+        return { quantity: "1", unit: "boîte 156 mL (Aylmer)", price: 1.49 };
+      }
+      if (/sauce hoisin|hoisin/.test(n)) {
+        return { quantity: "1", unit: "bouteille 240 mL (Lee Kum Kee)", price: 3.99 };
+      }
+      if (/sauce aux huitres|sauce huitres|oyster sauce/.test(n)) {
+        return { quantity: "1", unit: "bouteille 230 mL (Lee Kum Kee)", price: 3.99 };
+      }
+      if (/tahini|beurre de sesame/.test(n)) {
+        return { quantity: "1", unit: "pot 250 g (Joyva/PC)", price: 4.99 };
+      }
+      if (/houmous|hummus/.test(n)) {
+        return { quantity: "1", unit: "contenant 227 g (Sabra/Fontaine Santé)", price: 4.49 };
+      }
+      if (/yogourt grec|yogurt grec|yaourt grec/.test(n)) {
+        return { quantity: "1", unit: "pot 750 g (Liberté Méditerranée)", price: 6.49 };
+      }
+      if (/yogourt|yogurt|yaourt/.test(n)) {
+        return { quantity: "1", unit: "pot 750 g", price: 4.99 };
+      }
+
+      // Bière (pour cuisson)
+      if (/biere|bière/.test(n)) {
+        return { quantity: "1", unit: "canette 473 mL (bière locale Québec)", price: 2.99 };
+      }
+      if (/vin blanc|vin rouge/.test(n)) {
+        return { quantity: "1", unit: "bouteille 750 mL", price: 12.99 };
+      }
+
+      // Générique ml
       const containers = Math.max(1, Math.ceil(ml / 500));
-      return { quantity: `${containers}`, unit: "contenant(s) 500 ml", price: containers * 3.99 };
+      return { quantity: String(containers), unit: `contenant${containers > 1 ? "s" : ""} 500 mL`, price: containers * 3.99 };
     }
-    // Unit-based
+
+    // ── Ingrédients à l'unité ──────────────────────────────────────────────────
     const u = Math.max(1, Math.ceil(p.totalUnits));
-    if (/oeuf|œuf/.test(n))         return { quantity: `${Math.max(1, Math.ceil(u / 12))}`, unit: "douzaine(s)", price: Math.max(1, Math.ceil(u / 12)) * 5.49 };
-    if (/oignon|echalote/.test(n))  return { quantity: `${Math.max(1, Math.ceil(u / 6))}`,  unit: "sac(s) de 6", price: Math.max(1, Math.ceil(u / 6)) * 3.99 };
-    if (/carotte/.test(n))          return { quantity: `${Math.max(1, Math.ceil(u / 6))}`,  unit: "sac(s) de 6", price: Math.max(1, Math.ceil(u / 6)) * 3.49 };
-    if (/pomme de terre|patate/.test(n)) return { quantity: `${Math.max(1, Math.ceil(u / 5))}`, unit: "sac(s) 2.27 kg", price: Math.max(1, Math.ceil(u / 5)) * 5.99 };
-    if (/citron|lime/.test(n))      return { quantity: `${Math.max(1, Math.ceil(u / 3))}`,  unit: "filet(s) de 3",price: Math.max(1, Math.ceil(u / 3)) * 2.99 };
-    if (/boite|boîte|conserve/.test(p.rawUnit)) return { quantity: `${u}`, unit: "boîte(s) 540 ml", price: u * 2.29 };
-    if (/gousse/.test(p.rawUnit))   return { quantity: "1", unit: "tête d'ail", price: 1.49 };
-    return { quantity: `${u}`, unit: "unité(s)", price: u * 2.49 };
+
+    // Œufs
+    if (/oeuf|œuf/.test(n)) {
+      if (u <= 12) return { quantity: "1", unit: "douzaine d'œufs (gros)", price: 4.99 };
+      if (u <= 18) return { quantity: "1", unit: "boîte de 18 œufs", price: 6.99 };
+      return { quantity: "1", unit: "boîte de 24 œufs", price: 8.99 };
+    }
+
+    // Ail
+    if (/ail/.test(n) && /gousse|tete|tête/.test(p.rawUnit)) {
+      if (u <= 6) return { quantity: "1", unit: "tête d'ail", price: 0.99 };
+      return { quantity: "1", unit: "sac de 3 têtes d'ail", price: 2.49 };
+    }
+    if (/ail/.test(n)) {
+      return { quantity: "1", unit: "tête d'ail", price: 0.99 };
+    }
+
+    // Conserves (540 mL = format standard Canada chez IGA/Metro)
+    if (/pois chiche/.test(n)) {
+      const cans = Math.max(1, u);
+      return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 540 mL (PC/Unico)`, price: cans * 1.49 };
+    }
+    if (/haricot noir|haricots noirs/.test(n)) {
+      const cans = Math.max(1, u);
+      return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 540 mL (Unico/PC)`, price: cans * 1.49 };
+    }
+    if (/haricot rouge|haricots rouges/.test(n)) {
+      const cans = Math.max(1, u);
+      return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 540 mL (Unico)`, price: cans * 1.49 };
+    }
+    if (/lentille/.test(n)) {
+      const cans = Math.max(1, u);
+      return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 540 mL (PC)`, price: cans * 1.49 };
+    }
+    if (/thon/.test(n)) {
+      const cans = Math.max(1, u);
+      return { quantity: String(cans), unit: `boîte${cans > 1 ? "s" : ""} 170 g (Clover Leaf/PC)`, price: cans * 2.49 };
+    }
+    if (/sardine/.test(n)) {
+      return { quantity: "1", unit: "boîte 125 g", price: 2.29 };
+    }
+    if (/mais en conserve|maïs en conserve|mais sucre/.test(n)) {
+      return { quantity: "1", unit: "boîte 341 mL (Green Giant/PC)", price: 1.29 };
+    }
+
+    // Légumes vendus à l'unité
+    if (/oignon jaune|oignon rouge|oignon espagnol/.test(n)) {
+      if (u <= 3) return { quantity: "1", unit: "filet 3 lb (~6 oignons, PC/IGA)", price: 3.49 };
+      return { quantity: "1", unit: "sac 10 lb (~20 oignons)", price: 5.99 };
+    }
+    if (/oignon|echalote|echalote/.test(n)) {
+      return { quantity: "1", unit: "filet 3 lb (~6 oignons)", price: 3.49 };
+    }
+    if (/carotte/.test(n)) {
+      return { quantity: "1", unit: "sac 2 lb (~900 g, IGA/Metro)", price: 2.99 };
+    }
+    if (/patates? douces?/.test(n)) {
+      return { quantity: "1", unit: "sac 2 lb (~900 g)", price: 3.99 };
+    }
+    if (/pomme[s]? de terre|patates?(?! douce)/.test(n)) {
+      return { quantity: "1", unit: "sac 5 lb (2.27 kg, Yellow Gold/Russet)", price: 5.99 };
+    }
+    if (/tomates? cerises?|tomates? raisins?/.test(n)) {
+      const pkgs = Math.max(1, Math.ceil(u / 1));
+      return { quantity: String(pkgs), unit: `barquette${pkgs > 1 ? "s" : ""} 227 g`, price: pkgs * 3.99 };
+    }
+    if (/feta/.test(n)) {
+      return { quantity: "1", unit: "bloc en saumure 200 g", price: 4.99 };
+    }
+    if (/tomate(?! cerise| raisin)/.test(n)) {
+      if (u <= 2) return { quantity: `${u}`, unit: "grosse(s) tomate(s) sur vigne", price: u * 1.49 };
+      return { quantity: "1", unit: "sac de 6 tomates sur vigne", price: 4.99 };
+    }
+    if (/poivron/.test(n)) {
+      if (u <= 2) return { quantity: `${u}`, unit: "poivron(s) rouge(s)/jaune(s)", price: u * 1.49 };
+      return { quantity: "1", unit: "sac de 3 poivrons tricolores", price: 4.99 };
+    }
+    if (/concombre/.test(n)) {
+      return { quantity: `${u}`, unit: "concombre(s) anglais", price: u * 1.99 };
+    }
+    if (/courgette|zucchini/.test(n)) {
+      if (u <= 2) return { quantity: `${u}`, unit: "courgette(s)", price: u * 1.49 };
+      return { quantity: "1", unit: "sac de 3 courgettes", price: 3.99 };
+    }
+    if (/citron/.test(n)) {
+      if (u <= 2) return { quantity: `${u}`, unit: "citron(s)", price: u * 0.99 };
+      return { quantity: "1", unit: "filet de 5 citrons", price: 3.99 };
+    }
+    if (/lime|limette/.test(n)) {
+      if (u <= 2) return { quantity: `${u}`, unit: "lime(s)", price: u * 0.79 };
+      return { quantity: "1", unit: "filet de 5 limes", price: 2.99 };
+    }
+    if (/avocat/.test(n)) {
+      if (u <= 2) return { quantity: `${u}`, unit: "avocat(s) Hass bien mûr(s)", price: u * 1.99 };
+      return { quantity: "1", unit: "sac de 4 avocats Hass", price: 5.99 };
+    }
+    if (/mangue/.test(n)) {
+      return { quantity: `${u}`, unit: "mangue(s) Ataulfo", price: u * 1.99 };
+    }
+    if (/banane/.test(n)) {
+      return { quantity: "1", unit: "régime de bananes (~6)", price: 1.99 };
+    }
+    if (/pomme/.test(n) && !/pate de pomme/.test(n)) {
+      return { quantity: "1", unit: "sac de 6 pommes (Gala/Cortland)", price: 4.99 };
+    }
+    if (/poire/.test(n)) {
+      return { quantity: "1", unit: "sac de 4 poires Bosc/Bartlett", price: 3.99 };
+    }
+    if (/fraise/.test(n)) {
+      return { quantity: "1", unit: "barquette 454 g (locale en saison)", price: 4.99 };
+    }
+    if (/framboises|framboise/.test(n)) {
+      return { quantity: "1", unit: "barquette 170 g (ou sac surgelé 600 g)", price: 3.99 };
+    }
+    if (/bleuet/.test(n)) {
+      return { quantity: "1", unit: "barquette 170 g (bleuets du Québec/surgelé)", price: 3.99 };
+    }
+    if (/poireau/.test(n)) {
+      return { quantity: `${u}`, unit: "poireau(x)", price: u * 1.99 };
+    }
+    if (/fenouil/.test(n)) {
+      return { quantity: `${u}`, unit: "bulbe(s) de fenouil", price: u * 2.49 };
+    }
+    if (/aubergine/.test(n)) {
+      return { quantity: `${u}`, unit: "aubergine(s)", price: u * 1.99 };
+    }
+    if (/mais|maïs/.test(n) && !/conserve/.test(n)) {
+      return { quantity: `${u}`, unit: "épi(s) de maïs (en saison)", price: u * 0.99 };
+    }
+    if (/asperge/.test(n)) {
+      return { quantity: "1", unit: "botte d'asperges (~450 g)", price: 4.99 };
+    }
+    if (/herbe fraiche|herbes fraiches|ciboulette|persil|basilic|coriandre|aneth|menthe|estragon/.test(n)) {
+      return { quantity: "1", unit: "botte ou pot en serre (~25 g)", price: 2.49 };
+    }
+    if (/naan/.test(n)) {
+      return { quantity: "1", unit: "paquet de 4 naans (PC/Pains Dorés)", price: 3.99 };
+    }
+    if (/pita/.test(n)) {
+      return { quantity: "1", unit: "paquet de 6 pitas (Toufayan/Bella)", price: 3.49 };
+    }
+    if (/tortilla/.test(n)) {
+      return { quantity: "1", unit: "paquet de 10 tortillas de blé (Mission)", price: 4.49 };
+    }
+    if (/pain de seigle|pain de ble|pain intégral|pain integral|pain/.test(n)) {
+      return { quantity: "1", unit: "miche/pain tranché (Première Moisson/PC)", price: 4.99 };
+    }
+    if (/ravioli/.test(n)) {
+      return { quantity: "1", unit: "paquet 350 g pâtes fraîches (Giovanni/PC)", price: 5.99 };
+    }
+
+    // Ingrédients conserves génériques (si rawUnit = boîte/conserve)
+    if (/boite|boîte|conserve/.test(p.rawUnit)) {
+      return { quantity: `${u}`, unit: `boîte${u > 1 ? "s" : ""} 540 mL`, price: u * 2.29 };
+    }
+
+    // Fallback générique
+    return { quantity: `${u}`, unit: `unité${u > 1 ? "s" : ""}`, price: u * 2.49 };
   }
 
   // Accumulate parsed ingredient totals per group key
@@ -655,18 +1175,19 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
     }
   }
 
-  const shoppingList = Array.from(parsedMap.values()).map((p) => {
+  const shoppingList = Array.from(parsedMap.values()).flatMap((p) => {
     const grocery = toGroceryFormat(p);
+    if (!grocery) return []; // épice/condiment de base → exclure
     const category = getCategoryForIngredient(p.groupKey);
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-    return {
+    return [{
       name: cap(p.displayName),
       quantity: grocery.quantity,
       unit: grocery.unit,
       category,
       estimatedPrice: Math.round(grocery.price * 100) / 100,
       inFridge: fridgeNames.some(f => f.includes(p.groupKey) || p.groupKey.includes(f)),
-    };
+    }];
   });
 
   res.json(GetShoppingListResponse.parse(shoppingList));
