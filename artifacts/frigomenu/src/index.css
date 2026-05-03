@@ -38,35 +38,35 @@
 }
 
 :root {
-  /* Premium dark theme — teaser MonFrigo aesthetic */
-  --background: 0 0% 3%;          /* #080808 — near-black */
-  --foreground: 0 0% 96%;         /* #f5f5f5 — near-white */
+  /* Thème clair — propre et lisible */
+  --background: 120 20% 97%;      /* #f5f8f5 — blanc légèrement vert */
+  --foreground: 220 15% 12%;      /* #1a1d20 — quasi-noir */
 
-  --card: 0 0% 6%;                /* #0f0f0f — dark card */
-  --card-foreground: 0 0% 96%;
+  --card: 0 0% 100%;              /* #ffffff — blanc pur */
+  --card-foreground: 220 15% 12%;
 
-  --popover: 0 0% 7%;
-  --popover-foreground: 0 0% 96%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 15% 12%;
 
-  /* Fresh green accent — pops on dark */
-  --primary: 143 68% 48%;         /* #27c266 */
-  --primary-foreground: 0 0% 0%;  /* black text on green */
+  /* Vert principal — lisible sur fond blanc */
+  --primary: 142 60% 36%;         /* #25914a */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: 0 0% 10%;
-  --secondary-foreground: 0 0% 82%;
+  --secondary: 120 15% 94%;       /* #eff3ef */
+  --secondary-foreground: 220 15% 20%;
 
-  --muted: 0 0% 9%;
-  --muted-foreground: 0 0% 52%;   /* #858585 */
+  --muted: 120 10% 95%;           /* #f2f4f2 */
+  --muted-foreground: 220 8% 46%; /* #6f7580 */
 
-  --accent: 0 0% 12%;
-  --accent-foreground: 0 0% 90%;
+  --accent: 142 50% 93%;          /* #e2f5e8 — vert très pâle */
+  --accent-foreground: 142 60% 25%;
 
-  --destructive: 0 68% 52%;
+  --destructive: 0 72% 51%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 0 0% 13%;             /* #212121 — subtle border */
-  --input: 0 0% 10%;
-  --ring: 143 68% 48%;
+  --border: 120 10% 88%;          /* #dde4dd — bordure douce */
+  --input: 120 10% 92%;
+  --ring: 142 60% 36%;
 
   --radius: 1rem;
 }
