@@ -28,14 +28,15 @@ function getOpenAI(): { client: OpenAI; model: string } {
     };
   }
   // Groq: 100% gratuit, sans carte de crédit (https://console.groq.com)
-  // llama-3.1-8b-instant : ~750 tokens/sec (vs ~330 pour 70b) → passe sous le timeout Vercel de 10s
+  // llama-3.3-70b-versatile : contexte 32k tokens — évite le 413 que 8b-instant (8k) générait
+  // sur un menu 7 jours (~1000 tokens prompt + ~4000 tokens réponse = ~5000 tokens)
   if (process.env.GROQ_API_KEY) {
     return {
       client: new OpenAI({
         baseURL: "https://api.groq.com/openai/v1",
         apiKey: process.env.GROQ_API_KEY,
       }),
-      model: process.env.OPENAI_MODEL ?? "llama-3.1-8b-instant",
+      model: process.env.OPENAI_MODEL ?? "llama-3.3-70b-versatile",
     };
   }
   // Google Gemini: clé sur https://aistudio.google.com/apikey
@@ -264,7 +265,7 @@ Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 4096,
+      max_tokens: 3500,
     });
 
     let fullContent = "";
@@ -375,6 +376,8 @@ Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
       userMsg = onReplit
         ? "Erreur 400 du proxy Replit — modèle incorrect."
         : `Erreur 400 de ${provider} — clé incorrecte ou modèle invalide.`;
+    } else if (errStatus === 413) {
+      userMsg = "Menu trop grand pour ce modèle IA — réessayez dans quelques secondes.";
     } else if (errStatus === 429) {
       userMsg = "Limite de quota atteinte — réessayez dans quelques instants.";
     } else if (errMsg.includes("No JSON") || errMsg.toLowerCase().includes("json") || errMsg.includes("parse") || errMsg.includes("Unexpected")) {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useGetFridgeIngredients, useAddFridgeIngredient, useDeleteFridgeIngredient } from "@workspace/api-client-react";
-import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, Package, X } from "lucide-react";
+import { Plus, Search, Trash2, Apple, Beef, Carrot, Milk, Wheat, Sprout, Fish, X } from "lucide-react";
 import { Button, Input, Select, Label, Card, Badge } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,16 +8,18 @@ import { motion, AnimatePresence } from "framer-motion";
 // ─── Icônes ───────────────────────────────────────────────────────────────────
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  "Légumes":          <Carrot className="w-6 h-6 text-emerald-500" />,
-  "Fruits":           <Apple  className="w-6 h-6 text-red-500" />,
-  "Viandes":          <Beef   className="w-6 h-6 text-rose-600" />,
-  "Produits laitiers":<Milk   className="w-6 h-6 text-blue-400" />,
-  "Féculents":        <Wheat  className="w-6 h-6 text-amber-500" />,
+  "Légumes":              <Carrot className="w-6 h-6 text-emerald-500" />,
+  "Fruits":               <Apple  className="w-6 h-6 text-red-500" />,
+  "Viandes":              <Beef   className="w-6 h-6 text-rose-600" />,
+  "Poissons":             <Fish   className="w-6 h-6 text-cyan-500" />,
+  "Produits laitiers":    <Milk   className="w-6 h-6 text-blue-400" />,
+  "Féculents":            <Wheat  className="w-6 h-6 text-amber-500" />,
+  "Protéines végétales":  <Sprout className="w-6 h-6 text-green-600" />,
 };
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const CATEGORIES = ["Légumes", "Fruits", "Viandes", "Produits laitiers", "Féculents", "Épices", "Autres"];
+const CATEGORIES = ["Légumes", "Fruits", "Viandes", "Poissons", "Produits laitiers", "Féculents", "Protéines végétales", "Épices"];
 const UNITS = ["unité", "g", "kg", "ml", "L", "tasse", "c.à.s", "c.à.c"];
 
 // ─── Base d'ingrédients pour l'autocomplétion ─────────────────────────────────
@@ -37,20 +39,35 @@ const INGREDIENT_SUGGESTIONS: string[] = [
   "Jambon cuit", "Jambon fumé", "Prosciutto", "Pepperoni",
   "Agneau haché", "Gigot d'agneau", "Côtelette d'agneau",
   // ── Poissons & fruits de mer ──
-  "Saumon frais", "Saumon fumé", "Filet de saumon", "Saumon surgelé",
-  "Thon en conserve", "Thon en conserve dans l'eau", "Thon en conserve dans l'huile", "Thon frais",
-  "Crevettes fraîches", "Crevettes surgelées", "Crevettes décortiquées",
+  "Saumon frais", "Saumon fumé", "Filet de saumon", "Saumon surgelé", "Saumon sockeye", "Saumon atlantique",
+  "Thon en conserve", "Thon en conserve dans l'eau", "Thon en conserve dans l'huile", "Thon frais", "Thon albacore",
+  "Crevettes fraîches", "Crevettes surgelées", "Crevettes décortiquées", "Crevettes géantes",
   "Pétoncles frais", "Pétoncles surgelés",
   "Homard frais", "Homard en conserve", "Queue de homard surgelée",
-  "Crabe en conserve", "Pattes de crabe surgelées",
+  "Crabe en conserve", "Pattes de crabe surgelées", "Crabe des neiges",
   "Tilapia frais", "Tilapia surgelé", "Filet de tilapia",
-  "Morue fraîche", "Morue salée", "Morue surgelée",
-  "Doré frais", "Doré surgelé",
-  "Truite fraîche", "Truite fumée", "Truite surgelée",
+  "Morue fraîche", "Morue salée", "Morue surgelée", "Morue charbonnière",
+  "Doré frais", "Doré surgelé", "Filet de doré",
+  "Truite fraîche", "Truite arc-en-ciel", "Truite fumée", "Truite surgelée",
   "Moules fraîches", "Moules surgelées",
-  "Palourdes en conserve",
-  "Sardines en conserve",
-  "Maquereau en conserve",
+  "Palourdes en conserve", "Palourdes fraîches",
+  "Sardines en conserve", "Sardines à l'huile d'olive",
+  "Maquereau en conserve", "Maquereau fumé",
+  "Flétan frais", "Flétan surgelé", "Filet de flétan",
+  "Sole fraîche", "Sole surgelée", "Filet de sole",
+  "Pangasius surgelé", "Filet de pangasius",
+  "Basa surgelé", "Filet de basa",
+  "Mahi-mahi frais", "Mahi-mahi surgelé",
+  "Bar rayé frais", "Loup de mer",
+  "Dorade royale", "Dorade surgelée",
+  "Perche fraîche", "Filet de perche",
+  "Espadon frais", "Espadon surgelé",
+  "Hareng en conserve", "Hareng fumé", "Harengs marinés",
+  "Anchois en conserve", "Anchois à l'huile",
+  "Calamars frais", "Calamars surgelés", "Anneaux de calamars",
+  "Poulpe frais", "Poulpe surgelé",
+  "Huîtres fraîches", "Huîtres en conserve",
+  "Langouste surgelée",
   // ── Légumes frais ──
   "Tomate", "Tomates cerises", "Tomates raisins", "Tomate beefsteak",
   "Tomates en dés en conserve", "Tomates broyées en conserve", "Tomates entières en conserve",
@@ -136,7 +153,6 @@ const INGREDIENT_SUGGESTIONS: string[] = [
   "Haricots noirs en conserve", "Haricots noirs secs",
   "Haricots rouges en conserve", "Haricots rouges secs",
   "Haricots blancs en conserve", "Haricots blancs secs",
-  "Edamame surgelé", "Edamame frais",
   "Polenta", "Semoule de maïs",
   // ── Épices, herbes & condiments ──
   "Sel", "Sel de mer", "Fleur de sel",
@@ -165,12 +181,27 @@ const INGREDIENT_SUGGESTIONS: string[] = [
   // ── Bouillons & sauces ──
   "Bouillon de poulet", "Bouillon de bœuf", "Bouillon de légumes",
   "Sauce tomate", "Passata de tomate", "Concentré de tomate",
-  // ── Noix, graines & divers ──
+  // ── Protéines végétales ──
+  "Tofu ferme", "Tofu extra-ferme", "Tofu soyeux", "Tofu fumé", "Tofu soyeux nature",
+  "Tempeh nature", "Tempeh mariné", "Tempeh aux herbes",
+  "Seitan", "Seitan tranché",
+  "Edamame surgelé", "Edamame frais", "Edamame décortiqué",
+  "Lentilles vertes", "Lentilles rouges", "Lentilles beluga", "Lentilles du Puy",
+  "Pois chiches en conserve", "Pois chiches secs", "Pois chiches rôtis",
+  "Haricots noirs en conserve", "Haricots noirs secs",
+  "Haricots rouges en conserve", "Haricots rouges secs",
+  "Haricots blancs en conserve", "Haricots blancs secs",
+  "Fèves edamames", "Fèves sèches", "Pois cassés",
+  "Protéine de soya texturée (PST)", "Protéine végétale texturée",
+  "Haricots de Lima", "Haricots pinto",
+  // ── Noix & graines (protéines végétales) ──
   "Amandes entières", "Amandes effilées", "Amandes en poudre", "Amandes grillées",
   "Noix de cajou", "Noix de cajou grillées",
   "Arachides", "Arachides grillées",
-  "Pacanes", "Noix de Grenoble", "Noisettes",
-  "Graines de sésame", "Graines de lin", "Graines de chia", "Graines de citrouille",
+  "Pacanes", "Noix de Grenoble", "Noisettes", "Pistaches",
+  "Graines de sésame", "Graines de lin", "Graines de chia", "Graines de citrouille", "Graines de tournesol",
+  "Tahini (beurre de sésame)",
+  // ── Pâtisserie & divers ──
   "Levure chimique", "Bicarbonate de soude", "Levure instantanée",
   "Chocolat noir", "Chocolat au lait", "Chocolat blanc", "Cacao en poudre", "Pépites de chocolat",
   "Extrait de vanille", "Gousse de vanille",
@@ -179,12 +210,14 @@ const INGREDIENT_SUGGESTIONS: string[] = [
 // ─── Détection auto de catégorie ──────────────────────────────────────────────
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "Légumes": ["tomate", "carotte", "oignon", "ail", "poivron", "brocoli", "épinard", "laitue", "concombre", "céleri", "poireau", "courgette", "aubergine", "haricot vert", "pois vert", "maïs", "pomme de terre", "patate", "navet", "radis", "betterave", "asperge", "artichaut", "chou", "endive", "fenouil", "panais", "champignon", "zucchini", "roquette", "mâche", "shiitake", "edamame", "rutabaga"],
+  "Protéines végétales": ["tofu", "tempeh", "seitan", "edamame", "lentille", "pois chiche", "haricot noir", "haricot rouge", "haricot blanc", "haricot de lima", "haricot pinto", "fève", "pois cassé", "protéine végét", "protéine de soya", "pst", "légumineuse", "amande", "noix de cajou", "arachide", "pacane", "noisette", "pistache", "noix de grenoble", "graine de chia", "graine de lin", "graine de citrouille", "graine de sésame", "graine de tournesol", "tahini"],
+  "Poissons": ["saumon", "thon", "crevette", "pétoncle", "homard", "crabe", "tilapia", "morue", "doré", "truite", "moule", "palourde", "sardine", "maquereau", "flétan", "sole", "pangasius", "basa", "mahi-mahi", "bar rayé", "loup de mer", "dorade", "perche", "espadon", "hareng", "anchois", "calmar", "poulpe", "huître", "langouste", "fruits de mer", "poisson", "filet de"],
+  "Légumes": ["tomate", "carotte", "oignon", "ail", "poivron", "brocoli", "épinard", "laitue", "concombre", "céleri", "poireau", "courgette", "aubergine", "haricot vert", "pois vert", "maïs", "pomme de terre", "patate", "navet", "radis", "betterave", "asperge", "artichaut", "chou", "endive", "fenouil", "panais", "champignon", "zucchini", "roquette", "mâche", "shiitake", "rutabaga", "pak choï", "bok choy"],
   "Fruits": ["pomme", "banane", "orange", "citron", "lime", "fraise", "bleuet", "framboise", "raisin", "pêche", "poire", "mangue", "ananas", "melon", "pastèque", "cerise", "abricot", "kiwi", "grenade", "figue", "prune", "canneberge", "avocat", "nectarine", "pamplemousse", "mûre", "papaye", "goyave", "litchi", "noix de coco", "clémentine", "mandarine"],
-  "Viandes": ["poulet", "bœuf", "boeuf", "porc", "dinde", "veau", "agneau", "bacon", "saucisse", "jambon", "prosciutto", "merguez", "pepperoni", "saumon", "thon", "crevette", "pétoncle", "homard", "crabe", "tilapia", "morue", "doré", "truite", "moule", "palourde", "poisson", "filet de", "côtelette", "rôti de", "gigot", "bifteck", "sardine", "maquereau"],
+  "Viandes": ["poulet", "bœuf", "boeuf", "porc", "dinde", "veau", "agneau", "bacon", "saucisse", "jambon", "prosciutto", "merguez", "pepperoni", "côtelette", "rôti de", "gigot", "bifteck", "viande"],
   "Produits laitiers": ["lait", "fromage", "yaourt", "yogourt", "beurre", "crème", "œuf", "oeuf", "mozzarella", "cheddar", "parmesan", "ricotta", "cottage", "féta", "brie", "camembert", "gruyère", "havarti"],
-  "Féculents": ["riz", "pâtes", "pain", "farine", "couscous", "quinoa", "orge", "avoine", "gruau", "céréale", "blé", "semoule", "polenta", "lentille", "pois chiche", "haricot noir", "haricot rouge", "haricot blanc", "tortilla", "naan", "pita"],
-  "Épices": ["sel", "poivre", "cumin", "paprika", "curcuma", "cannelle", "gingembre", "basilic", "thym", "origan", "persil", "coriandre", "laurier", "romarin", "estragon", "muscade", "piment", "cayenne", "safran", "herbe", "moutarde", "mayonnaise", "ketchup", "vinaigre", "sauce", "huile", "miel", "sirop d'érable", "sucre", "cassonade", "vanille", "levure", "bicarbonate", "cacao", "chocolat", "curry", "garam", "noix de cajou", "amande", "arachide", "pacane", "noix", "graine", "bouillon"],
+  "Féculents": ["riz", "pâtes", "pain", "farine", "couscous", "quinoa", "orge", "avoine", "gruau", "céréale", "blé", "semoule", "polenta", "tortilla", "naan", "pita"],
+  "Épices": ["sel", "poivre", "cumin", "paprika", "curcuma", "cannelle", "gingembre", "basilic", "thym", "origan", "persil", "coriandre", "laurier", "romarin", "estragon", "muscade", "piment", "cayenne", "safran", "herbe", "moutarde", "mayonnaise", "ketchup", "vinaigre", "sauce", "huile", "miel", "sirop d'érable", "sucre", "cassonade", "vanille", "levure", "bicarbonate", "cacao", "chocolat", "curry", "garam", "bouillon"],
 };
 
 function detectCategory(name: string): string {
@@ -192,7 +225,7 @@ function detectCategory(name: string): string {
   for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
     if (keywords.some(k => lower.includes(k))) return category;
   }
-  return "Autres";
+  return "Légumes";
 }
 
 // ─── Composant autocomplétion ─────────────────────────────────────────────────
@@ -488,11 +521,11 @@ export default function FridgePage() {
               <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} key={item.id}>
                 <Card className="p-6 hover:shadow-md transition-all flex flex-col h-full relative overflow-hidden bg-card">
                   <div className="absolute -right-6 -bottom-6 opacity-[0.03] pointer-events-none">
-                    {CATEGORY_ICONS[item.category] || <Package className="w-40 h-40" />}
+                    {CATEGORY_ICONS[item.category] || <Sprout className="w-40 h-40" />}
                   </div>
                   <div className="flex justify-between items-start mb-4 relative z-10">
                     <div className="p-3 bg-muted/50 rounded-2xl">
-                      {CATEGORY_ICONS[item.category] || <Package className="w-6 h-6 text-muted-foreground" />}
+                      {CATEGORY_ICONS[item.category] || <Sprout className="w-6 h-6 text-muted-foreground" />}
                     </div>
                     <button
                       onClick={() => deleteMutation.mutate({ id: item.id })}
