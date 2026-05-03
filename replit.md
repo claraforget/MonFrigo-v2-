@@ -44,6 +44,31 @@ lib/
 - `user_preferences` — cooking time, budget, people count, allergies, dietary/cuisine prefs
 - `weekly_menus` — AI-generated menus stored as JSONB
 
+## Authentication
+
+Custom JWT auth (no Clerk). Cookie name: `__mf_sess`, 30-day httpOnly lax cookie.
+- `POST /api/auth/register` — email + password → bcrypt hash, JWT cookie
+- `POST /api/auth/login` — email + password → JWT cookie
+- `POST /api/auth/logout` — clears cookie
+- `GET /api/auth/me` — returns current user
+- `requireAuth` middleware reads JWT from cookie, injects `req.user`
+- `JWT_SECRET` set as shared env var in Replit and in Vercel env
+- `users` table in PostgreSQL: id, email, passwordHash, name, createdAt
+
+## AI Menu Generation
+
+- Provider: OpenAI via Replit AI Integrations (gpt-5.2 / fallback to groq llama)
+- Prompt includes ANREF Canada nutritional targets per day per person
+- Response includes `dailyNutrition` per day: calories, proteinG, carbsG, fatG, fiberG
+- Savings optimization: budget proteins, seasonal veg, bulk buying, smart leftovers
+- UI displays nutritional summary in each day card header
+
+## Design
+
+- Dark premium theme: #080808 background, white foreground, #27c266 primary green
+- Font: Bricolage Grotesque (display), Inter (body)
+- Matching teaser aesthetic with glassmorphism cards
+
 ## Key Commands
 
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API client/Zod from OpenAPI spec

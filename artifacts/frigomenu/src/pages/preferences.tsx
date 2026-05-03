@@ -5,7 +5,7 @@ import { Card, Button, Input, Label } from "@/components/ui-elements";
 import { ChefHat, Clock, Users, Wallet, Leaf, Flame, Check, Sparkles, ExternalLink, UtensilsCrossed, BarChart2, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/components/ui-elements";
-import { useUser, useAuth } from "@clerk/react";
+import { useAuth } from "@/context/AuthContext";
 import { usePaywall } from "@/hooks/usePaywall";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -67,8 +67,7 @@ function MultiSelectChip({
 }
 
 function SubscriptionCard() {
-  const { user } = useUser();
-  const { getToken } = useAuth();
+  const { user } = useAuth();
   const paywall = usePaywall();
   const [loading, setLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
@@ -79,16 +78,13 @@ function SubscriptionCard() {
     setLoading(true);
     setError(null);
     try {
-      const email = user?.primaryEmailAddress?.emailAddress;
+      const email = user?.email;
       if (!email) throw new Error("Email du compte introuvable");
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-      const token = await getToken();
       const res = await fetch(`${apiBase}/api/stripe/create-portal-session`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, userId: user?.id, returnUrl: window.location.href }),
       });
       const j = await res.json();
@@ -106,13 +102,10 @@ function SubscriptionCard() {
     setError(null);
     try {
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-      const token = await getToken();
       const res = await fetch(`${apiBase}/api/stripe/cancel-subscription`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error ?? `Erreur ${res.status}`);

@@ -231,13 +231,29 @@ RÈGLES DE VARIÉTÉ — CRITIQUE:
 2. JOURS CONSÉCUTIFS: distribuer les protéines et légumes sur la semaine — éviter le même légume principal 2 jours de suite, alterner les protéines (ex: poulet lundi → bœuf mardi → poisson mercredi → légumineuses jeudi...).
 3. DIVERSITÉ MAXIMUM: viser à n'utiliser le même ingrédient principal (épinards, brocoli, pois chiches, etc.) que 2 fois max sur la semaine entière.
 
-RÈGLES NUTRITIONNELLES:
-- ≥20g protéines/portion pour déjeuner/souper; légumes colorés + féculent aux repas principaux
-- Min 2 soupers végétariens riches en protéines + 1 souper poisson; utiliser le frigo en priorité
+ANREF CANADA — OBJECTIFS NUTRITIONNELS PAR JOUR PAR PERSONNE (adultes 19-50 ans):
+- Énergie: 1800-2200 kcal (viser ~2000 kcal pour 1 personne, multiplier par ${N})
+- Protéines: ≥52g (0.8g/kg; inclure au moins 20g/repas principal)
+- Glucides: ≥130g (favoriser glucides complexes: avoine, riz brun, quinoa, légumineuses)
+- Lipides: 44-78g (20-35% des calories; huile d'olive, noix, avocat)
+- Fibres: ≥28g (légumes, légumineuses, grains entiers)
+- Calcium: ≥1000mg (produits laitiers, légumes verts, tofu au calcium)
+- Vitamines: inclure ≥2 légumes colorés différents par jour
+- Minimum 2 soupers végétariens riches en protéines + 1 souper poisson par semaine
+
+MAXIMISER LES ÉCONOMIES — OBJECTIF: économiser 50$+/semaine vs épicerie standard:
+- PROTÉINES BUDGET: prioriser œufs (~0.30$/portion), légumineuses sèches (~0.20$/portion), tofu (~0.80$/portion), cuisses de poulet > poitrines (30% moins cher), thon/sardines en conserve
+- LÉGUMES SAISON (mai-sept): asperges, courgettes, maïs, tomates, poivrons, fraises — (oct-avr): chou, carottes, pommes de terre, navet, courge, pommes
+- ACHATS EN VRAC: flocons d'avoine, riz long grain, lentilles, pâtes, farine — jamais en format individuel
+- RÉUTILISATION INTELLIGENTE: si tu cuisines un poulet entier, planifier les restes le lendemain (ex: poulet rôti lundi soir → sandwich poulet mardi midi)
+- ÉVITER: ingrédients premium inutiles (truffe, safran, burrata, saumon fumé) sauf si dans le frigo
+- FORMAT GROS: préférer 4L de lait, 5kg riz, 2kg avoine — mentionner "format grand format" dans les ingrédients quand pertinent
+- LÉGUMINEUSES comme protéine principale ≥3x/semaine
 
 RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — zéro texte avant ou après, zéro markdown.
-Format: {"days":[{"dayName":"Lundi","breakfast":...,"lunch":...,"dinner":...}, ×7 jours],"estimatedCost":number}
+Format: {"days":[{"dayName":"Lundi","breakfast":...,"lunch":...,"dinner":...,"dailyNutrition":{"calories":number,"proteinG":number,"carbsG":number,"fatG":number,"fiberG":number}}, ×7 jours],"estimatedCost":number}
 Chaque recette: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
+Le champ dailyNutrition = valeurs estimées pour 1 personne/jour selon les ANREF. Viser: ~2000 kcal, ~55g protéines, ~250g glucides, ~65g lipides, ~30g fibres.
 Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
 
 

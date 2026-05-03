@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import authRouter from "./auth";
 import fridgeRouter from "./fridge";
 import preferencesRouter from "./preferences";
 import menuRouter from "./menu";
@@ -9,6 +10,7 @@ import stripeRouter from "./stripe";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
 router.use(fridgeRouter);
 router.use(preferencesRouter);
 router.use(menuRouter);

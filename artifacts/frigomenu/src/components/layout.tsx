@@ -4,7 +4,7 @@ import { Refrigerator, Settings, CalendarRange, ShoppingCart, LogOut } from "luc
 import { motion } from "framer-motion";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { useClerk, useUser } from "@clerk/react";
+import { useAuth } from "@/context/AuthContext";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -19,9 +19,8 @@ const NAV_ITEMS = [
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
-  const { signOut } = useClerk();
-  const { user } = useUser();
-  const userLabel = user?.primaryEmailAddress?.emailAddress ?? user?.fullName ?? "";
+  const { user, logout } = useAuth();
+  const userLabel = user?.email ?? "";
   const initial = (userLabel[0] ?? "?").toUpperCase();
 
   return (
@@ -41,24 +40,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {NAV_ITEMS.map((item) => {
             const isActive = location === item.href;
             return (
-              <Link 
-                key={item.href} 
+              <Link
+                key={item.href}
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all duration-300 relative group overflow-hidden",
-                  isActive 
-                    ? "text-primary bg-primary/10" 
+                  isActive
+                    ? "text-primary bg-primary/10"
                     : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
                 {isActive && (
-                  <motion.div 
+                  <motion.div
                     layoutId="sidebar-active"
                     className="absolute inset-0 bg-primary/10 rounded-2xl z-0"
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
-                <item.icon className={cn("w-5 h-5 z-10 transition-transform duration-300", isActive ? "scale-105" : "group-hover:scale-105")} />
+                <item.icon
+                  className={cn(
+                    "w-5 h-5 z-10 transition-transform duration-300",
+                    isActive ? "scale-105" : "group-hover:scale-105"
+                  )}
+                />
                 <span className="z-10">{item.label}</span>
               </Link>
             );
@@ -76,7 +80,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               </p>
             </div>
             <button
-              onClick={() => signOut()}
+              onClick={() => logout()}
               className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
               title="Déconnexion"
               aria-label="Déconnexion"
@@ -85,10 +89,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
           <div className="flex flex-col gap-1 px-2 mt-2">
-            <Link href="/privacy" className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1">
+            <Link
+              href="/privacy"
+              className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1"
+            >
               <ExternalLink className="w-3 h-3" /> Confidentialité
             </Link>
-            <Link href="/terms" className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1">
+            <Link
+              href="/terms"
+              className="text-[11px] text-muted-foreground/60 hover:text-primary transition-colors flex items-center gap-1"
+            >
               <ExternalLink className="w-3 h-3" /> Conditions d'utilisation
             </Link>
           </div>
@@ -115,18 +125,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {NAV_ITEMS.map((item) => {
           const isActive = location === item.href;
           return (
-            <Link 
-              key={item.href} 
+            <Link
+              key={item.href}
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center w-full h-full space-y-1 relative",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <div className={cn(
-                "p-1.5 px-4 rounded-xl transition-all duration-300",
-                isActive ? "bg-primary/10" : "bg-transparent"
-              )}>
+              <div
+                className={cn(
+                  "p-1.5 px-4 rounded-xl transition-all duration-300",
+                  isActive ? "bg-primary/10" : "bg-transparent"
+                )}
+              >
                 <item.icon className="w-5 h-5" />
               </div>
               <span className="text-[10px] font-medium">{item.label}</span>

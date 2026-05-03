@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, X, Check, ShieldCheck, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui-elements";
-import { useUser, useAuth } from "@clerk/react";
+import { useAuth } from "@/context/AuthContext";
 
 export function PaywallModal({
   open,
@@ -13,8 +13,7 @@ export function PaywallModal({
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useUser();
-  const { getToken } = useAuth();
+  const { user } = useAuth();
 
   const handleSubscribe = async () => {
     setLoading(true);
@@ -22,17 +21,14 @@ export function PaywallModal({
     try {
       const currentUrl = window.location.origin + window.location.pathname;
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-      const token = await getToken();
       const res = await fetch(`${apiBase}/api/stripe/create-checkout-session`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           successUrl: `${currentUrl}?paid=true`,
           cancelUrl: `${currentUrl}?paid=cancel`,
-          email: user?.primaryEmailAddress?.emailAddress,
+          email: user?.email,
           userId: user?.id,
         }),
       });

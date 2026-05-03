@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Meal } from "@workspace/api-client-react/src/generated/api.schemas";
 import { usePaywall } from "@/hooks/usePaywall";
 import { PaywallModal } from "@/components/PaywallModal";
-import { useAuth, useUser } from "@clerk/react";
+import { useAuth } from "@/context/AuthContext";
 
 function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal | null | undefined, forceOpen?: boolean }) {
   const [expanded, setExpanded] = useState(false);
@@ -100,8 +100,7 @@ export default function MenuPage() {
   const { data, isLoading } = useGetCurrentMenu();
   const queryClient = useQueryClient();
   const paywall = usePaywall();
-  const { getToken } = useAuth();
-  const { isLoaded: clerkLoaded, isSignedIn } = useUser();
+  const { user, loading: authLoading } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -120,34 +119,28 @@ export default function MenuPage() {
     }
   }, []);
 
-  // Étape 2 — Dès que Clerk est chargé et l'utilisateur connu : activer l'abonnement
+  // Étape 2 — Dès que l'utilisateur est connu : activer l'abonnement si paiement en attente
   useEffect(() => {
-    if (!clerkLoaded || !isSignedIn) return;
+    if (authLoading || !user) return;
     if (sessionStorage.getItem("stripe_paid_pending") === "true") {
       sessionStorage.removeItem("stripe_paid_pending");
       paywall.subscribe();
     }
-  }, [clerkLoaded, isSignedIn]);
+  }, [authLoading, user]);
 
   // Étape 2b — Synchronisation serveur : vérifier le vrai statut d'abonnement Stripe
-  // Corrige le cas où localStorage est vide (nouvel appareil, cache effacé, etc.)
   useEffect(() => {
-    if (!clerkLoaded || !isSignedIn) return;
-    getToken().then((token) => {
-      if (!token) return;
-      const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-      fetch(`${apiBase}/api/stripe/subscription-status`, {
-        headers: { Authorization: `Bearer ${token}` },
+    if (authLoading || !user) return;
+    const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+    fetch(`${apiBase}/api/stripe/subscription-status`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((data: { subscribed: boolean }) => {
+        if (data.subscribed && !paywall.isSubscribed) {
+          paywall.subscribe();
+        }
       })
-        .then((r) => r.json())
-        .then((data: { subscribed: boolean }) => {
-          if (data.subscribed && !paywall.isSubscribed) {
-            paywall.subscribe();
-          }
-        })
-        .catch(() => { /* non-bloquant */ });
-    });
-  }, [clerkLoaded, isSignedIn]);
+      .catch(() => { /* non-bloquant */ });
+  }, [authLoading, user]);
 
   // Décrémenter le compteur quand un NOUVEAU menu apparaît en DB (fiable même si SSE est coupé)
   useEffect(() => {
@@ -177,14 +170,11 @@ export default function MenuPage() {
     let sseError = false;
 
     try {
-      const token = await getToken();
       const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
       const res = await fetch(`${apiBase}/api/menu/generate`, {
         method: "POST",
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          "Content-Type": "application/json",
-        },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         signal: abortRef.current.signal,
       });
 
@@ -254,7 +244,7 @@ export default function MenuPage() {
         setTimeout(() => queryClient.invalidateQueries({ queryKey: ["/api/menu/current"] }), 4000);
       }
     }
-  }, [getToken, queryClient]);
+  }, [queryClient]);
 
   const handleGenerateClick = () => {
     paywall.checkAndGenerate(() => generateMenuSSE());
@@ -517,18 +507,47 @@ export default function MenuPage() {
 
       {!isGenerating && hasMenu && (
         <div className="space-y-8">
-          {data.menu.days.map((day, idx) => (
-            <Card key={idx} className="p-0 overflow-hidden print-break-inside-avoid shadow-sm hover:shadow-md transition-shadow">
-              <div className="bg-primary/5 px-8 py-5 border-b border-primary/10 flex items-center justify-between">
-                <h2 className="text-2xl font-display font-bold text-primary">{day.dayName}</h2>
-              </div>
-              <div className="p-5 sm:p-8 space-y-4 bg-card">
-                <MealCard title="Déjeuner" meal={day.breakfast} />
-                <MealCard title="Dîner" meal={day.lunch} />
-                <MealCard title="Souper" meal={day.dinner} />
-              </div>
-            </Card>
-          ))}
+          {data.menu.days.map((day, idx) => {
+            const nutrition = (day as Record<string, unknown>).dailyNutrition as {
+              calories?: number; proteinG?: number; carbsG?: number; fatG?: number; fiberG?: number;
+            } | undefined;
+            return (
+              <Card key={idx} className="p-0 overflow-hidden print-break-inside-avoid shadow-sm hover:shadow-md transition-shadow">
+                <div className="bg-primary/5 px-8 py-5 border-b border-primary/10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+                  <h2 className="text-2xl font-display font-bold text-primary shrink-0">{day.dayName}</h2>
+                  {nutrition && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                        <strong className="text-foreground">{nutrition.calories ?? "—"}</strong> kcal
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+                        <strong className="text-foreground">{nutrition.proteinG ?? "—"}g</strong> prot.
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
+                        <strong className="text-foreground">{nutrition.carbsG ?? "—"}g</strong> glucides
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-yellow-300 inline-block" />
+                        <strong className="text-foreground">{nutrition.fatG ?? "—"}g</strong> lipides
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
+                        <strong className="text-foreground">{nutrition.fiberG ?? "—"}g</strong> fibres
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-5 sm:p-8 space-y-4 bg-card">
+                  <MealCard title="Déjeuner" meal={day.breakfast} />
+                  <MealCard title="Dîner" meal={day.lunch} />
+                  <MealCard title="Souper" meal={day.dinner} />
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

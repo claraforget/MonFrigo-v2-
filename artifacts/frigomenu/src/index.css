@@ -1,7 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@400;500;600;700;800&display=swap');
-@layer theme, base, clerk, components, utilities;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@layer theme, base, components, utilities;
 @import "tailwindcss";
-@import "@clerk/themes/shadcn.css";
 
 @theme inline {
   --font-sans: 'DM Sans', sans-serif;
@@ -13,21 +12,21 @@
   --color-card-foreground: hsl(var(--card-foreground));
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-  
+
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
+
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-  
+
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  
+
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -39,61 +38,37 @@
 }
 
 :root {
-  /* Soft warm cream background */
-  --background: 45 30% 97%;
-  --foreground: 25 15% 15%;
-  
-  /* Crisp white cards */
-  --card: 0 0% 100%;
-  --card-foreground: 25 15% 15%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 25 15% 15%;
-  
-  /* Soft sage green */
-  --primary: 142 35% 45%;
-  --primary-foreground: 0 0% 100%;
-  
-  /* Warm peach/apricot */
-  --secondary: 25 80% 65%;
-  --secondary-foreground: 0 0% 100%;
-  
-  --muted: 45 20% 94%;
-  --muted-foreground: 25 10% 50%;
-  
-  --accent: 25 80% 65%;
-  --accent-foreground: 0 0% 100%;
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  
-  --border: 45 15% 88%;
-  --input: 45 15% 88%;
-  --ring: 142 35% 45%;
-  
-  --radius: 1.5rem;
-}
+  /* Premium dark theme — teaser MonFrigo aesthetic */
+  --background: 0 0% 3%;          /* #080808 — near-black */
+  --foreground: 0 0% 96%;         /* #f5f5f5 — near-white */
 
-.dark {
-  --background: 25 15% 10%;
-  --foreground: 45 30% 97%;
-  --card: 25 15% 12%;
-  --card-foreground: 45 30% 97%;
-  --popover: 25 15% 12%;
-  --popover-foreground: 45 30% 97%;
-  --primary: 142 35% 45%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 25 70% 55%;
-  --secondary-foreground: 0 0% 100%;
-  --muted: 25 15% 20%;
-  --muted-foreground: 45 20% 60%;
-  --accent: 25 70% 55%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 60% 50%;
+  --card: 0 0% 6%;                /* #0f0f0f — dark card */
+  --card-foreground: 0 0% 96%;
+
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 96%;
+
+  /* Fresh green accent — pops on dark */
+  --primary: 143 68% 48%;         /* #27c266 */
+  --primary-foreground: 0 0% 0%;  /* black text on green */
+
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 82%;
+
+  --muted: 0 0% 9%;
+  --muted-foreground: 0 0% 52%;   /* #858585 */
+
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 90%;
+
+  --destructive: 0 68% 52%;
   --destructive-foreground: 0 0% 100%;
-  --border: 25 15% 20%;
-  --input: 25 15% 20%;
-  --ring: 142 35% 45%;
+
+  --border: 0 0% 13%;             /* #212121 — subtle border */
+  --input: 0 0% 10%;
+  --ring: 143 68% 48%;
+
+  --radius: 1rem;
 }
 
 @layer base {
@@ -103,16 +78,16 @@
   body {
     @apply bg-background text-foreground antialiased font-sans selection:bg-primary/20 selection:text-primary;
   }
-  
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     @apply font-semibold tracking-tight text-foreground;
   }
 
-  /* Custom scrollbar */
+  /* Custom scrollbar — dark theme */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
@@ -131,38 +106,34 @@
   }
 }
 
-/* Print specific styles for the PDF export feature */
+/* Print styles */
 @media print {
   @page {
     margin: 1.5cm;
     size: portrait;
   }
-  
+
   body {
     background: white !important;
     color: black !important;
   }
-  
-  /* Hide UI elements */
+
   .no-print, nav, header, button, .sidebar {
     display: none !important;
   }
-  
-  /* Format main content area for full width */
+
   main, .print-container {
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
   }
-  
-  /* Avoid breaking inside cards */
+
   .print-break-inside-avoid {
     break-inside: avoid;
     page-break-inside: avoid;
   }
-  
-  /* Adjust cards for print */
+
   .glass-card, .bg-card {
     box-shadow: none !important;
     border: 1px solid #e2e8f0 !important;

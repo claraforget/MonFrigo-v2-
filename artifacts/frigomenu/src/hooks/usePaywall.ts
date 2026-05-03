@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useUser } from "@clerk/react";
+import { useAuth } from "@/context/AuthContext";
 
 const FREE_GENERATIONS = 2;
 
@@ -32,8 +32,9 @@ function migrateLegacyKeys(userId: string | null) {
 }
 
 export function usePaywall() {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
   const userId = user?.id ?? null;
+  const isLoaded = !loading;
 
   const [count, setCount] = useState<number>(0);
   const [isSubscribed, setIsSubscribed] = useState<boolean>(false);
