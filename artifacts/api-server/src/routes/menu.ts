@@ -194,12 +194,12 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
     const regimeStr = (preferences.dietaryPreferences as string[]).length > 0 ? (preferences.dietaryPreferences as string[]).join(", ") : "aucun";
     const cuisinesStr = (preferences.cuisinePreferences as string[]).length > 0 ? (preferences.cuisinePreferences as string[]).join(", ") : "variées";
 
-    const prompt = `Tu es un chef cuisinier expert. Génère un menu de 7 jours savoureux et bien assaisonné pour ${N} personne(s). Seed:${seed}.
+    const prompt = `Tu es le chef cuisinier derrière un blogue culinaire québécois populaire — dans l'esprit de Trois fois par jour (Marilou), K pour Katrine et Passion Bouffe. Tu crées des recettes qui font envie : noms évocateurs, associations de saveurs audacieuses, textures contrastées, présentation soignée. Génère un menu de 7 jours pour ${N} personne(s). Seed:${seed}.
 
 PROFIL:
 - Budget: ${preferences.weeklyBudget}$ CAD/sem | Temps max: ${preferences.cookingTimePerDay} min/jour
 - Allergies STRICTES: ${allergiesStr} | Régime: ${regimeStr} | Cuisines: ${cuisinesStr}
-- Frigo: ${ingredientList}
+- Frigo disponible: ${ingredientList}
 
 REPAS REQUIS PAR JOUR (7 jours, Lundi à Dimanche):
 ${fieldDirectives}
@@ -209,70 +209,142 @@ NIVEAU DE DIFFICULTÉ — RESPECTER STRICTEMENT:
 ${diffInstruction}
 Définitions: ${diffTimings}
 
-═══ RÈGLES PAR TYPE DE REPAS ═══
+══════════════════════════════════════════
+ADN CULINAIRE QUÉBÉCOIS — À INTÉGRER PARTOUT
+══════════════════════════════════════════
 
-DÉJEUNER (breakfast) = repas du matin rapide et nutritif:
-• 4-6 ingrédients AVEC QUANTITÉS PRÉCISES, 3 étapes claires, description 12 mots max
-• Exemples: bol de gruau banane-beurre d'amande-cannelle | toast avocat-œuf poché-flocons de chili | smoothie bowl mangue-gingembre-graines de chia | omelette feta-épinards-herbes fraîches | yogourt grec-granola-fruits rouges-miel
+SAVEURS SIGNATURES (utiliser généreusement):
+• Sirop d'érable: dans les marinades (poulet, tofu, porc), les vinaigrettes, les sauces glacées
+• Moutarde de Dijon: vinaigrettes, croûtes, sauces crémeuses
+• Vinaigre de cidre de pomme: vinaigrettes, pickles rapides
+• Beurre et ail dans tout ce qui saute — jamais d'huile seule sans aromates
+• Cheddar vieilli, fromage en grains, ricotta, brie québécois
+• Bacon, lardons, pancetta — même en petite quantité pour la profondeur
+• Herbes fraîches EN FIN DE CUISSON: ciboulette, persil plat, basilic, aneth, coriandre
 
-DÎNER (lunch, midi) = repas froid/tiède facile à préparer à l'avance ou apporter:
-• 6-8 ingrédients AVEC QUANTITÉS PRÉCISES, 3-4 étapes claires, description 15 mots max
-• TYPES OBLIGATOIRES: sandwich, wrap, salade-repas, bol froid, pita, bento ou soupe+pain — PAS un sauté chaud de restaurant
-• Exemples: wrap de poulet pesto-tomates séchées-roquette | sandwich thon-avocat-câpres sur pain de seigle | bol de quinoa poulet-feta-olives-citron | salade de lentilles aux herbes et vinaigrette moutarde | pita falafels-houmous-taboulé | bento saumon-riz-crudités-sésame
+GARNITURES OBLIGATOIRES (au moins 1 par repas — comme au resto):
+• Zeste de citron ou lime râpé sur les poissons et salades
+• Graines de sésame grillées ou noix caramélisées sur les bols et salades
+• Ciboulette fraîche ciselée sur les soupes, omelettes, risottos
+• Flocons de piment rouge sur les pâtes et pizzas
+• Filet d'huile d'olive extra-vierge ou de sésame grillé en finition
+• Parmesan ou cheddar râpé sur les gratins et pâtes
+• Piment jalapeño ou gochujang pour le kick
 
-SOUPER (dinner) = repas principal chaud, savoureux et bien assaisonné:
-• 9-11 ingrédients AVEC QUANTITÉS PRÉCISES, 5-6 étapes détaillées (2 phrases précises/étape — technique culinaire + geste), description 20 mots max
-• Épices/herbes obligatoires (ex: cumin, paprika fumé, zaatar, gingembre, coriandre, garam masala, tamari, harissa, sumac)
-• Protéines à varier (inclure des végétales!): poulet, bœuf, porc, agneau, saumon, crevettes, tilapia, morue ET tofu ferme, tempeh, seitan, lentilles, pois chiches, haricots noirs, edamame, œufs
-• Exemples végétaux inspirants: tofu croustillant tamari-sésame + bok choy sauté + riz jasmin | tempeh miso-érable + brocoli caramélisé + quinoa | curry rouge pois chiches-épinards + riz basmati | lentilles beluga sauce tomate-harissa + couscous | seitan grillé marinade chimichurri + patate douce rôtie | dhal de lentilles corail au lait de coco + naan grillé
-• Exemples avec protéines animales: saumon poché lait de coco-curry rouge + basmati à la citronnelle | poulet tikka masala maison + naan | bowl zaatar-sumac poulet + houmous + tabboulé | crevettes sautées à l'ail-citron-persil + linguines | agneau braisé aux épices marocaines + couscous
+TECHNIQUE DES CONTRASTES (obligatoire dans chaque souper):
+• CROQUANT + CRÉMEUX: panko sur poisson + sauce avocat | noix grillées sur salade + vinaigrette crémeuse
+• FROID + CHAUD: salade fraîche sur protéine grillée chaude | crème fraîche sur soupe brûlante
+• ACIDITÉ + RICHESSE: citron/lime sur viande grasse | vinaigre sur fromage fondu
+• DOUCEUR + UMAMI: érable sur porc/tofu + tamari | miel sur feta + olives
 
-FORMAT INGRÉDIENTS — RÈGLE ABSOLUE:
-Chaque ingrédient DOIT inclure quantité + unité + nom précis. Exemples obligatoires:
-• Protéines: "300 g de poitrines de poulet sans os", "2 filets de saumon (150 g chacun)", "1 boîte (540 ml) de pois chiches rincés et égouttés", "200 g de tofu ferme, coupé en cubes"
-• Légumes: "2 poivrons rouges, tranchés en lanières", "200 g de brocoli en fleurons", "1 gros oignon jaune, émincé finement"
-• Liquides: "250 ml de bouillon de poulet faible en sodium", "1 boîte (400 ml) de lait de coco entier", "30 ml de sauce tamari", "15 ml d'huile d'olive extra-vierge"
-• Épices: "5 ml de cumin moulu", "3 gousses d'ail, émincées", "2 ml de sel de mer", "5 ml de paprika fumé"
-• Féculents: "200 g de riz basmati (sec)", "180 g de pâtes penne (sèches)", "100 g de quinoa (sec)"
-JAMAIS "poulet", "ail", "huile" sans quantité ni unité. TOUJOURS unité + quantité numérique.
+══════════════════════════════════════════
+RÈGLES PAR TYPE DE REPAS
+══════════════════════════════════════════
 
-INSTRUCTIONS — STANDARD PROFESSIONNEL (style Ricardo / Trois fois par jour):
-• Déjeuner: 3 étapes simples (30-40 mots/étape)
-• Dîner: 3-4 étapes (40-60 mots/étape), technique précise
-• Souper: 5-6 étapes riches (50-80 mots/étape) — "Faire chauffer 15 ml d'huile d'olive dans une grande poêle à feu moyen-vif. Ajouter l'oignon et les poivrons, faire revenir 4-5 minutes jusqu'à ce qu'ils ramollissent." — TECHNIQUE + GESTE + DURÉE + RÉSULTAT VISUEL attendu dans chaque étape.
+DÉJEUNER (breakfast) — INSPIRANT, pas banal:
+• 4-6 ingrédients AVEC QUANTITÉS PRÉCISES, 3 étapes, 12 mots de description max
+• NOMS CRÉATIFS OBLIGATOIRES — jamais "Gruau simple" ou "Toast avocat":
+  ✓ "Toast brioche avocat-œuf coulant, flocons de chili & ciboulette"
+  ✓ "Bol de gruau banane-beurre d'érable, noix de Grenoble caramélisées"
+  ✓ "Crêpes avoine-banane, compote framboises & ricotta vanillée"
+  ✓ "Smoothie bowl mangue-gingembre, granola croustillant & kiwi"
+  ✓ "Omelette roulée aux champignons, cheddar vieilli & ciboulette"
+  ✓ "Pain doré brioche, pêches rôties au miel & yogourt grec"
+  ✓ "Bol açaï, fruits des champs, noix de coco grillée & sirop d'érable"
+  ✓ "Bagel maison gravlax-fromage à la crème-câpres-aneth"
 
-NUTRITION JOURNALIÈRE — OBLIGATOIRE DANS CHAQUE JOUR:
+DÎNER (midi) — REPAS VOYAGE / PRÉPARÉ D'AVANCE:
+• 6-8 ingrédients AVEC QUANTITÉS PRÉCISES, 3-4 étapes, 15 mots de description max
+• TYPES: wrap signature, salade-repas composée, bol froid style buddha, soupe-repas, sandwich gastronomique — jamais un sauté chaud
+• NOMS CRÉATIFS OBLIGATOIRES:
+  ✓ "Wrap au poulet BBQ, coleslaw au miel-lime & coriandre fraîche"
+  ✓ "Bol de quinoa style Buddha, edamame, carotte marinée & vinaigrette tahini-gingembre"
+  ✓ "Sandwich au thon grillé, avocat, câpres & rémoulade au citron sur pain de seigle"
+  ✓ "Salade de lentilles beluga, betteraves rôties, feta & vinaigrette moutarde-érable"
+  ✓ "Soupe-repas aux champignons & saucisse italienne, raviolis & parmesan"
+  ✓ "Bento saumon-riz jasmin, concombre mariné, edamame & sauce soya-sésame"
+  ✓ "Pita falafels maison, houmous, tomates confites & salade de persil"
+  ✓ "Salade de kale massé, courge rôtie, canneberges séchées & noix de Grenoble"
+
+SOUPER (soir) — PLAT PRINCIPAL SIGNATURE:
+• 9-11 ingrédients AVEC QUANTITÉS PRÉCISES, 5-6 étapes riches, 20 mots de description max
+• CHAQUE SOUPER DOIT AVOIR: une protéine + un féculent/légume de base + une sauce/jus maison + une garniture fraîche
+• FORMAT INSPIRANT (varier chaque soir):
+  - Plaque au four (sheet pan): tout rôti ensemble, jus de cuisson récupéré en sauce
+  - One-pot/chaudron: braisé, mijoté, risotto, curry
+  - Planche/grill: protéine grillée + accompagnement chaud + sauce froide
+  - Sauté wok: légumes croquants, sauce umami, riz ou nouilles
+  - Assemblé/bowl: composantes séparées montées à table
+• NOMS ÉVOCATEURS OBLIGATOIRES (style blogue):
+  ✓ "Cuisses de poulet glacées à l'érable & à la moutarde, patates douces rôties au romarin"
+  ✓ "Risotto crémeux aux champignons sauvages & poireaux, bacon croustillant & ciboulette"
+  ✓ "Morue en croûte de panko au paprika fumé, salade style tacos & crème d'avocat au lime"
+  ✓ "Soupe florentine à la saucisse italienne, raviolis au fromage & épinards frais"
+  ✓ "Pâtes au beurre brun, noisettes grillées, sauge & parmesan reggiano"
+  ✓ "Tofu croustillant laqué au tamari-gingembre, bok choy sauté & riz jasmin au sésame"
+  ✓ "Filet de porc à l'érable & au bourbon, purée de céleri-rave & pommes caramélisées"
+  ✓ "Tacos smashed au saumon, pico de gallo, guacamole au miel & tortillas de maïs"
+  ✓ "Cari rouge de pois chiches & épinards, riz basmati à la citronnelle & naan grillé"
+  ✓ "Boulettes de poulet à la bière & à l'érable, sauce tomate maison & polenta crémeuse"
+  ✓ "Tempeh miso-érable, brocoli caramélisé & quinoa aux herbes fraîches"
+  ✓ "Saumon poché au lait de coco-curry rouge, basmati & chutney de mangue fraîche"
+
+══════════════════════════════════════════
+FORMAT INGRÉDIENTS — RÈGLE ABSOLUE
+══════════════════════════════════════════
+Chaque ingrédient DOIT inclure quantité + unité + nom précis + préparation:
+• Protéines: "300 g de cuisses de poulet désossées, sans peau", "2 filets de morue (150 g chacun)", "1 boîte (540 ml) de pois chiches, rincés et égouttés", "200 g de tofu ferme, coupé en cubes de 2 cm"
+• Légumes: "2 poivrons rouges, tranchés en fines lanières", "200 g de brocoli en fleurons", "1 gros oignon jaune, haché finement", "2 gousses d'ail, émincées"
+• Liquides/sauces: "250 ml de bouillon de poulet faible en sodium", "1 boîte (400 ml) de lait de coco entier", "30 ml de sauce tamari", "15 ml de sirop d'érable pur", "15 ml d'huile d'olive extra-vierge"
+• Épices: "5 ml de cumin moulu", "5 ml de paprika fumé", "2 ml de sel de mer", "1 pincée de flocons de piment rouge"
+• Féculents: "200 g de riz basmati (sec)", "180 g de pâtes penne de blé entier (sèches)", "100 g de quinoa (sec, rincé)"
+• Garnitures: "30 ml de ciboulette fraîche, ciselée", "15 ml de graines de sésame grillées", "1 citron (zeste et jus)", "50 g de parmesan, fraîchement râpé"
+JAMAIS sans quantité — TOUJOURS: nombre + unité + nom + préparation
+
+══════════════════════════════════════════
+INSTRUCTIONS — STYLE BLOGUE CULINAIRE QUÉBÉCOIS
+══════════════════════════════════════════
+Écrire comme Marilou (Trois fois par jour) ou Katrine Paradis (K pour Katrine) — chaleureux, précis, visuel, avec astuces:
+• Déjeuner: 3 étapes (max 40 mots/étape) — direct et engageant
+• Dîner: 3-4 étapes (max 55 mots/étape) — technique + conseil de prep avance
+• Souper: 5-6 étapes (max 75 mots/étape) — inclure: température exacte, durée, résultat visuel attendu, et 1 conseil de chef par étape
+EXEMPLES DE STYLE:
+✓ "Faire chauffer l'huile dans une grande poêle en fonte à feu vif. Ajouter les cuisses de poulet côté peau vers le bas — ne pas bouger pendant 6-7 min pour obtenir une peau bien dorée et croustillante."
+✓ "Déglacer avec le bouillon de poulet en grattant bien les sucs de cuisson caramélisés — c'est là que réside toute la saveur. Ajouter l'érable et la moutarde, laisser réduire 3-4 min à feu moyen."
+✓ "Servir dans des bols chauds, garnir généreusement de ciboulette fraîche, d'un filet d'huile d'olive et d'un tour de moulin à poivre. C'est le genre de plat qu'on mange en fermant les yeux."
+JAMAIS: "Cuire le poulet." "Faire revenir les légumes." — trop vague, trop fade.
+
+══════════════════════════════════════════
+NUTRITION JOURNALIÈRE — OBLIGATOIRE
+══════════════════════════════════════════
 Le champ "dailyNutrition" DOIT figurer dans les 7 jours, jamais absent ni null.
+Viser par personne: ~2000 kcal | ~55g protéines | ~250g glucides | ~65g lipides | ~30g fibres
 Format: {"calories": 1950, "proteinG": 56, "carbsG": 242, "fatG": 66, "fiberG": 30}
 
-RÈGLES DE VARIÉTÉ — CRITIQUE:
-1. MÊME JOURNÉE: jamais le même ingrédient vedette (légume, protéine, féculent) dans deux repas du même jour. Si lunch=épinards → souper SANS épinards. Si lunch=poulet → souper SANS poulet. Si lunch=quinoa → souper SANS quinoa.
-2. JOURS CONSÉCUTIFS: distribuer les protéines et légumes sur la semaine — éviter le même légume principal 2 jours de suite, alterner les protéines (ex: poulet lundi → bœuf mardi → poisson mercredi → légumineuses jeudi...).
-3. DIVERSITÉ MAXIMUM: viser à n'utiliser le même ingrédient principal (épinards, brocoli, pois chiches, etc.) que 2 fois max sur la semaine entière.
+══════════════════════════════════════════
+VARIÉTÉ — RÈGLES CRITIQUES
+══════════════════════════════════════════
+1. MÊME JOURNÉE: jamais la même protéine principale dans 2 repas du même jour.
+2. SEMAINE: alterner les protéines chaque soir (ex: poulet → poisson → légumineuses → porc → bœuf/veau → végétarien → œufs). Max 2× la même protéine sur 7 jours.
+3. LÉGUMES: max 2× le même légume principal sur la semaine. Au moins 2 légumes colorés différents par jour.
+4. MINIMUM: 2 soupers végétariens (riches en protéines végétales) + 1 souper poisson par semaine.
+5. RESTES INTELLIGENTS: si poulet rôti au souper lundi → sandwich au poulet au dîner mardi (mentionner "avec les restes du poulet de la veille").
 
-ANREF CANADA — OBJECTIFS NUTRITIONNELS PAR JOUR PAR PERSONNE (adultes 19-50 ans):
-- Énergie: 1800-2200 kcal (viser ~2000 kcal pour 1 personne, multiplier par ${N})
-- Protéines: ≥52g (0.8g/kg; inclure au moins 20g/repas principal)
-- Glucides: ≥130g (favoriser glucides complexes: avoine, riz brun, quinoa, légumineuses)
-- Lipides: 44-78g (20-35% des calories; huile d'olive, noix, avocat)
-- Fibres: ≥28g (légumes, légumineuses, grains entiers)
-- Calcium: ≥1000mg (produits laitiers, légumes verts, tofu au calcium)
-- Vitamines: inclure ≥2 légumes colorés différents par jour
-- Minimum 2 soupers végétariens riches en protéines + 1 souper poisson par semaine
+══════════════════════════════════════════
+BUDGET — ÉCONOMIES INTELLIGENTES
+══════════════════════════════════════════
+- Cuisses de poulet > poitrines (30% moins cher, plus de saveur)
+- Légumineuses (pois chiches, lentilles) ≥ 3x/semaine comme protéine principale
+- Légumes de saison (mai-sept: asperges, courgettes, tomates, maïs, poivrons | oct-avr: chou, courge, carottes, navet)
+- Vrac: avoine, riz, lentilles, pâtes — jamais format individuel
+- Éviter: ingrédients luxueux inutiles sauf si déjà dans le frigo
 
-MAXIMISER LES ÉCONOMIES — OBJECTIF: économiser 50$+/semaine vs épicerie standard:
-- PROTÉINES BUDGET: prioriser œufs (~0.30$/portion), légumineuses sèches (~0.20$/portion), tofu (~0.80$/portion), cuisses de poulet > poitrines (30% moins cher), thon/sardines en conserve
-- LÉGUMES SAISON (mai-sept): asperges, courgettes, maïs, tomates, poivrons, fraises — (oct-avr): chou, carottes, pommes de terre, navet, courge, pommes
-- ACHATS EN VRAC: flocons d'avoine, riz long grain, lentilles, pâtes, farine — jamais en format individuel
-- RÉUTILISATION INTELLIGENTE: si tu cuisines un poulet entier, planifier les restes le lendemain (ex: poulet rôti lundi soir → sandwich poulet mardi midi)
-- ÉVITER: ingrédients premium inutiles (truffe, safran, burrata, saumon fumé) sauf si dans le frigo
-- FORMAT GROS: préférer 4L de lait, 5kg riz, 2kg avoine — mentionner "format grand format" dans les ingrédients quand pertinent
-- LÉGUMINEUSES comme protéine principale ≥3x/semaine
-
-RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — zéro texte avant ou après, zéro markdown.
-Format: {"days":[{"dayName":"Lundi","breakfast":...,"lunch":...,"dinner":...,"dailyNutrition":{"calories":number,"proteinG":number,"carbsG":number,"fatG":number,"fiberG":number}}, ×7 jours],"estimatedCost":number}
-Chaque recette: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
-Le champ dailyNutrition = valeurs estimées pour 1 personne/jour selon les ANREF. Viser: ~2000 kcal, ~55g protéines, ~250g glucides, ~65g lipides, ~30g fibres.
+══════════════════════════════════════════
+FORMAT JSON — RÉPONSE OBLIGATOIRE
+══════════════════════════════════════════
+RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — zéro texte avant ou après, zéro markdown, zéro commentaire.
+{"days":[{"dayName":"Lundi","breakfast":RECETTE|null,"lunch":RECETTE|null,"dinner":RECETTE|null,"dailyNutrition":{"calories":number,"proteinG":number,"carbsG":number,"fatG":number,"fiberG":number}}, ... ×7],"estimatedCost":number}
+Chaque RECETTE: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
 Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
 
 
