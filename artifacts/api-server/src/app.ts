@@ -8,6 +8,9 @@ import { stripeWebhookHandler } from "./routes/stripeWebhook";
 
 const app: Express = express();
 
+// Trust Replit / Vercel / nginx reverse proxy so req.secure reflects HTTPS correctly
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,
