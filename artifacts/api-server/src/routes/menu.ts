@@ -10,6 +10,8 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { requireAuth, type AuthedRequest } from "../middlewares/requireAuth";
 
 const FREE_GENERATIONS = 2;
+// Comptes avec accès illimité (beta testers / fondateurs)
+const UNLIMITED_EMAILS = ["claraforget@icloud.com"];
 
 const router: IRouter = Router();
 
@@ -77,15 +79,18 @@ router.post("/menu/generate", async (req, res): Promise<void> => {
   };
 
   // ── Enforcement paywall côté serveur ─────────────────────────────────────
-  let isServerSubscribed = false;
-  try {
-    const [subRow] = await db
-      .select()
-      .from(userSubscriptionsTable)
-      .where(eq(userSubscriptionsTable.userId, userId))
-      .limit(1);
-    isServerSubscribed = subRow?.status === "active" || subRow?.status === "canceling";
-  } catch { /* non-bloquant */ }
+  const userEmail = (req as AuthedRequest).userEmail ?? "";
+  let isServerSubscribed = UNLIMITED_EMAILS.includes(userEmail.toLowerCase());
+  if (!isServerSubscribed) {
+    try {
+      const [subRow] = await db
+        .select()
+        .from(userSubscriptionsTable)
+        .where(eq(userSubscriptionsTable.userId, userId))
+        .limit(1);
+      isServerSubscribed = subRow?.status === "active" || subRow?.status === "canceling";
+    } catch { /* non-bloquant */ }
+  }
 
   if (!isServerSubscribed) {
     let currentCount = 0;
@@ -746,7 +751,29 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
         return { quantity: "1", unit: "plaquette 454 g (4 bâtons)", price: 5.99 };
       }
 
-      // Légumes feuilles
+      // Légumes feuilles & herbes fraîches en botte
+      if (/rapini/.test(n)) {
+        return { quantity: "1", unit: "botte (~300 g)", price: 3.49 };
+      }
+      if (/brocoli chinois|gai lan/.test(n)) {
+        return { quantity: "1", unit: "botte (~300 g)", price: 3.49 };
+      }
+      if (/blette|bette a carde|bette a côte/.test(n)) {
+        return { quantity: "1", unit: "botte (~300 g)", price: 2.99 };
+      }
+      if (/coriandre fraiche|coriandre fraîche/.test(n)) {
+        return { quantity: "1", unit: "botte fraîche", price: 1.49 };
+      }
+      if (/persil frais/.test(n)) {
+        return { quantity: "1", unit: "botte fraîche", price: 1.49 };
+      }
+      if (/menthe fraiche|menthe fraîche/.test(n)) {
+        return { quantity: "1", unit: "botte fraîche", price: 1.49 };
+      }
+      if (/asperge/.test(n)) {
+        const bunches = Math.max(1, Math.ceil(g / 450));
+        return { quantity: String(bunches), unit: `botte${bunches > 1 ? "s" : ""} (~450 g)`, price: bunches * 4.49 };
+      }
       if (/epinard|épinard/.test(n)) {
         const bags = Math.max(1, Math.ceil(g / 142));
         return { quantity: String(bags), unit: `sac${bags > 1 ? "s" : ""} 142 g (bébé épinards)`, price: bags * 3.99 };
@@ -757,11 +784,30 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
       if (/chou kale|kale/.test(n)) {
         return { quantity: "1", unit: "botte 200 g", price: 3.49 };
       }
-      if (/laitue|mesclun|verdure/.test(n)) {
+      if (/laitue romaine/.test(n)) {
+        return { quantity: "1", unit: "cœur de romaine 3-pack (340 g)", price: 3.99 };
+      }
+      if (/laitue|mesclun|verdure|mizuna|mache|mâche/.test(n)) {
         return { quantity: "1", unit: "contenant 142 g", price: 3.99 };
+      }
+      if (/radicchio|trévise|trevise/.test(n)) {
+        return { quantity: "1", unit: "tête (~300 g)", price: 3.49 };
+      }
+      if (/endive/.test(n)) {
+        const count = Math.max(1, Math.ceil(g / 100));
+        return { quantity: String(count), unit: `endive${count > 1 ? "s" : ""} fraîche${count > 1 ? "s" : ""}`, price: count * 1.49 };
+      }
+      if (/pak choi|pak choï|bok choy/.test(n)) {
+        return { quantity: "1", unit: "botte (~400 g)", price: 2.99 };
       }
 
       // Champignons
+      if (/shiitake/.test(n)) {
+        return { quantity: "1", unit: "barquette 113 g (shiitake)", price: 4.49 };
+      }
+      if (/portobello/.test(n)) {
+        return { quantity: "1", unit: "barquette 2 caps (~200 g)", price: 3.99 };
+      }
       if (/champignon/.test(n)) {
         const pkgs = Math.max(1, Math.ceil(g / 227));
         return { quantity: String(pkgs), unit: `barquette${pkgs > 1 ? "s" : ""} 227 g`, price: pkgs * 3.49 };
@@ -773,7 +819,7 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
         return { quantity: String(pkgs), unit: `barquette${pkgs > 1 ? "s" : ""} 227 g`, price: pkgs * 3.99 };
       }
 
-      // Brocoli
+      // Brocoli (rapini DOIT passer avant pour éviter match "brocoli" dans "brocoli chinois")
       if (/brocoli/.test(n)) {
         return { quantity: "1", unit: "tête (~450 g)", price: 2.99 };
       }
@@ -781,9 +827,65 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
       if (/chou-fleur|choufleur/.test(n)) {
         return { quantity: "1", unit: "tête (~800 g)", price: 4.49 };
       }
+      // Chou
+      if (/chou rouge|chou vert|chou napa|chou savoy/.test(n)) {
+        return { quantity: "1", unit: "chou entier (~800 g)", price: 3.49 };
+      }
+      // Poireau
+      if (/poireau/.test(n)) {
+        const count = Math.max(1, Math.ceil(g / 150));
+        return { quantity: String(count), unit: `poireau${count > 1 ? "x" : ""} frais`, price: count * 1.79 };
+      }
+      // Fenouil
+      if (/fenouil/.test(n)) {
+        return { quantity: "1", unit: "bulbe de fenouil frais", price: 3.49 };
+      }
+      // Betterave
+      if (/betterave/.test(n)) {
+        return { quantity: "1", unit: "botte (~3 betteraves, 500 g)", price: 3.49 };
+      }
+      // Panais
+      if (/panais/.test(n)) {
+        return { quantity: "1", unit: "sac 2 lb (~900 g)", price: 3.49 };
+      }
+      // Navet / rutabaga
+      if (/navet|rutabaga/.test(n)) {
+        return { quantity: "1", unit: "navet entier (~500 g)", price: 1.99 };
+      }
+      // Céleri-rave
+      if (/celeri.rave|celeriac/.test(n)) {
+        return { quantity: "1", unit: "céleri-rave entier (~600 g)", price: 3.99 };
+      }
       // Céleri
       if (/celeri|céleri/.test(n)) {
         return { quantity: "1", unit: "pied de céleri", price: 2.99 };
+      }
+      // Courgette / zucchini
+      if (/courgette|zucchini/.test(n)) {
+        const count = Math.max(1, Math.ceil(g / 200));
+        return { quantity: String(count), unit: `courgette${count > 1 ? "s" : ""}`, price: count * 1.29 };
+      }
+      // Aubergine
+      if (/aubergine/.test(n)) {
+        return { quantity: "1", unit: "aubergine (~400 g)", price: 2.49 };
+      }
+      // Courge butternut / spaghetti
+      if (/courge butternut|butternut squash/.test(n)) {
+        return { quantity: "1", unit: "courge butternut (~1 kg)", price: 4.49 };
+      }
+      if (/courge spaghetti/.test(n)) {
+        return { quantity: "1", unit: "courge spaghetti (~1 kg)", price: 3.99 };
+      }
+      if (/courge|citrouille/.test(n)) {
+        return { quantity: "1", unit: "courge entière (~1 kg)", price: 3.99 };
+      }
+      // Concombre
+      if (/concombre anglais|concombre/.test(n)) {
+        return { quantity: "1", unit: "concombre anglais", price: 1.99 };
+      }
+      // Maïs
+      if (/mais|maïs/.test(n)) {
+        return { quantity: "2", unit: "épis de maïs frais", price: 1.99 };
       }
 
       // Féculents & grains (formats sacs épicerie)
@@ -848,6 +950,27 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
       }
       if (/granola/.test(n)) {
         return { quantity: "1", unit: "sac 454 g (Nature Valley/PC)", price: 5.99 };
+      }
+
+      // Miso (pâte)
+      if (/miso/.test(n)) {
+        return { quantity: "1", unit: "contenant 300 g (miso blanc/rouge)", price: 4.99 };
+      }
+      // Kimchi
+      if (/kimchi/.test(n)) {
+        return { quantity: "1", unit: "pot 400 g (épicerie coréenne/IGA)", price: 5.99 };
+      }
+      // Algues / nori
+      if (/nori|algue/.test(n)) {
+        return { quantity: "1", unit: "paquet 10 feuilles nori grillées", price: 3.99 };
+      }
+      // Levure nutritionnelle
+      if (/levure nutritionnelle/.test(n)) {
+        return { quantity: "1", unit: "sac 125 g (Bob's Red Mill/bulk barn)", price: 5.99 };
+      }
+      // Tahini
+      if (/tahini|tahin/.test(n)) {
+        return { quantity: "1", unit: "pot 454 g (Krinos/Alwadi)", price: 5.99 };
       }
 
       // Beurre de noix
@@ -1312,11 +1435,16 @@ const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
     category: "Légumes",
     keywords: [
       "carotte", "tomate", "oignon", "échalote", "echalote", "ail", "poivron",
-      "brocoli", "chou-fleur", "chou", "épinard", "epinard", "laitue", "roquette",
-      "concombre", "céleri", "celeri", "poireau", "courgette", "zucchini",
-      "aubergine", "champignon", "radis", "betterave", "navet", "rutabaga",
-      "panais", "courge", "citrouille", "asperge", "artichaut", "fenouil",
-      "maïs", "mais", "pomme de terre", "patate", "igname",
+      "brocoli", "rapini", "brocoli chinois", "gai lan",
+      "chou-fleur", "chou rouge", "chou vert", "chou napa", "chou", "épinard", "epinard",
+      "laitue", "laitue romaine", "roquette", "mâche", "mache", "mizuna", "mesclun",
+      "radicchio", "trévise", "endive", "blette", "bette à carde",
+      "concombre", "céleri-rave", "celeriac", "céleri", "celeri",
+      "poireau", "courgette", "zucchini", "aubergine",
+      "champignon", "radis", "betterave", "navet", "rutabaga",
+      "panais", "courge butternut", "courge spaghetti", "courge", "citrouille",
+      "asperge", "artichaut", "fenouil", "maïs", "mais",
+      "pomme de terre", "patate", "igname", "topinambour",
       "gingembre", "persil", "coriandre", "basilic", "menthe", "ciboulette",
       "estragon", "thym frais", "romarin frais",
     ],

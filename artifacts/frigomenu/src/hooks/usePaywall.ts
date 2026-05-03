@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 const FREE_GENERATIONS = 2;
+const UNLIMITED_EMAILS = ["claraforget@icloud.com"];
 
 function keys(userId: string | null) {
   const suffix = userId ?? "anon";
@@ -78,26 +79,27 @@ export function usePaywall() {
     setIsSubscribed(localStorage.getItem(k.sub) === "true");
   }, [isLoaded, userId]);
 
-  const isBlocked = isLoaded && !isSubscribed && count >= FREE_GENERATIONS;
-  const remainingFree = Math.max(0, FREE_GENERATIONS - count);
+  const isUnlimited = UNLIMITED_EMAILS.includes((user?.email ?? "").toLowerCase());
+  const isBlocked = isLoaded && !isSubscribed && !isUnlimited && count >= FREE_GENERATIONS;
+  const remainingFree = isUnlimited ? Infinity : Math.max(0, FREE_GENERATIONS - count);
 
   const incrementCount = useCallback(() => {
     const next = countRef.current + 1;
     setCount(next);
     countRef.current = next;
     localStorage.setItem(keys(userIdRef.current).count, String(next));
-    if (!isSubscribedRef.current && next >= FREE_GENERATIONS) {
+    if (!isSubscribedRef.current && !isUnlimited && next >= FREE_GENERATIONS) {
       setShowPaywall(true);
     }
-  }, []);
+  }, [isUnlimited]);
 
   const checkAndGenerate = useCallback((generate: () => void) => {
-    if (isLoaded && !isSubscribedRef.current && countRef.current >= FREE_GENERATIONS) {
+    if (isLoaded && !isSubscribedRef.current && !isUnlimited && countRef.current >= FREE_GENERATIONS) {
       setShowPaywall(true);
       return;
     }
     generate();
-  }, [isLoaded]);
+  }, [isLoaded, isUnlimited]);
 
   const subscribe = useCallback(() => {
     setIsSubscribed(true);
