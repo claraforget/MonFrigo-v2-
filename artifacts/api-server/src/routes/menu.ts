@@ -506,7 +506,7 @@ Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
     } else if (errStatus === 413) {
       userMsg = "Menu trop grand pour ce modèle IA — réessayez dans quelques secondes.";
     } else if (errStatus === 429) {
-      userMsg = "Limite de quota atteinte — réessayez dans quelques instants.";
+      userMsg = "Le modèle IA est temporairement surchargé — réessayez dans 30 secondes.";
     } else if (errMsg.includes("No JSON") || errMsg.toLowerCase().includes("json") || errMsg.includes("parse") || errMsg.includes("Unexpected")) {
       userMsg = `Format invalide — réessayez dans quelques secondes.`;
     } else {

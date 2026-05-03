@@ -608,7 +608,17 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {!paywall.isSubscribed && (
+      {paywall.isUnlimited && (
+        <div className="text-xs text-emerald-600 font-semibold text-right -mt-6 no-print flex items-center justify-end gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" /> Accès fondateur illimité
+        </div>
+      )}
+      {paywall.isSubscribed && !paywall.isUnlimited && (
+        <div className="text-xs text-emerald-600 font-semibold text-right -mt-6 no-print flex items-center justify-end gap-1.5">
+          <Sparkles className="w-3.5 h-3.5" /> Accès Premium activé
+        </div>
+      )}
+      {!paywall.isSubscribed && !paywall.isUnlimited && (
         <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground -mt-6 no-print">
           <span>
             {paywall.remainingFree > 0
@@ -622,11 +632,6 @@ export default function MenuPage() {
           >
             Passer à Premium →
           </button>
-        </div>
-      )}
-      {paywall.isSubscribed && (
-        <div className="text-xs text-emerald-600 font-semibold text-right -mt-6 no-print flex items-center justify-end gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> Accès Premium activé
         </div>
       )}
 

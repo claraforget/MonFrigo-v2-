@@ -118,6 +118,7 @@ export function usePaywall() {
   return {
     count,
     isSubscribed,
+    isUnlimited,
     isBlocked,
     remainingFree,
     showPaywall,
