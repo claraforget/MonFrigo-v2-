@@ -340,11 +340,15 @@ INGRÉDIENTS SANTÉ & UMAMI À UTILISER RÉGULIÈREMENT:
 • Glucides sains: orge perlé, sarrasin (kasha), farro, boulgour, patate douce violette, châtaigne d'eau
 
 ══════════════════════════════════════════
-NUTRITION JOURNALIÈRE — OBLIGATOIRE
+NUTRITION JOURNALIÈRE — OBLIGATOIRE ET DÉTAILLÉE
 ══════════════════════════════════════════
 Le champ "dailyNutrition" DOIT figurer dans les 7 jours, jamais absent ni null.
-Viser par personne: ~2000 kcal | ~55g protéines | ~250g glucides | ~65g lipides | ~30g fibres
-Format: {"calories": 1950, "proteinG": 56, "carbsG": 242, "fatG": 66, "fiberG": 30}
+Valeurs CIBLES PAR JOUR (pour ${N} personne(s), toutes les 3 repas combinés):
+  Macros:   ~${N * 2000} kcal | ~${N * 55}g protéines | ~${N * 250}g glucides | ~${N * 65}g lipides | ~${N * 28}g fibres
+  Minéraux: ~${N * 1500}mg sodium | ~${N * 1000}mg calcium | ~${N * 16}mg fer | ~${N * 3500}mg potassium | ~${N * 12}mg zinc | ~${N * 380}mg magnésium
+  Vitamines:~${N * 900}μg vit. A | ~${N * 90}mg vit. C | ~${N * 600} UI vit. D | ~${N * 2.4}μg vit. B12 | ~${N * 400}μg folate
+Format EXACT (tous les champs obligatoires, nombres entiers sauf B12):
+{"calories":number,"proteinG":number,"carbsG":number,"fatG":number,"fiberG":number,"sodiumMg":number,"calciumMg":number,"ironMg":number,"potassiumMg":number,"zincMg":number,"magnesiumMg":number,"vitaminAug":number,"vitaminCMg":number,"vitaminDiu":number,"vitaminB12ug":number,"folateMcg":number}
 
 ══════════════════════════════════════════
 VARIÉTÉ — RÈGLES CRITIQUES
@@ -356,19 +360,27 @@ VARIÉTÉ — RÈGLES CRITIQUES
 5. RESTES INTELLIGENTS: si poulet rôti au souper lundi → sandwich au poulet au dîner mardi (mentionner "avec les restes du poulet de la veille").
 
 ══════════════════════════════════════════
-BUDGET — ÉCONOMIES INTELLIGENTES
+BUDGET — RÈGLE ABSOLUE NON NÉGOCIABLE
 ══════════════════════════════════════════
+Budget total semaine: ${preferences.weeklyBudget}$ CAD pour ${N} personne(s)
+→ Coût par repas MAXIMUM: ~${Math.round(preferences.weeklyBudget / 21 * 100) / 100}$ (= ${preferences.weeklyBudget}$ ÷ 21 repas)
+→ estimatedCost racine JSON DOIT être ≤ ${preferences.weeklyBudget}$ — sinon réponse rejetée
+→ Les ingrédients partagés entre plusieurs repas ne se comptent QU'UNE FOIS
+→ VÉRIFIER avant de répondre: somme des estimatedCost de chaque recette ÷ repas/sem ≤ ${Math.round(preferences.weeklyBudget / 21 * 100) / 100}$
+
+STRATÉGIES ÉCONOMIQUES OBLIGATOIRES:
 - Cuisses de poulet > poitrines (30% moins cher, plus de saveur)
 - Légumineuses (pois chiches, lentilles) ≥ 3x/semaine comme protéine principale
 - Légumes de saison (mai-sept: asperges, courgettes, tomates, maïs, poivrons | oct-avr: chou, courge, carottes, navet)
 - Vrac: avoine, riz, lentilles, pâtes — jamais format individuel
 - Éviter: ingrédients luxueux inutiles sauf si déjà dans le frigo
+- Limiter à 1 seule viande ou poisson premium (saumon, filet mignon) sur la semaine
 
 ══════════════════════════════════════════
 FORMAT JSON — RÉPONSE OBLIGATOIRE
 ══════════════════════════════════════════
 RÉPONDS UNIQUEMENT AVEC DU JSON VALIDE — zéro texte avant ou après, zéro markdown, zéro commentaire.
-{"days":[{"dayName":"Lundi","breakfast":RECETTE|null,"lunch":RECETTE|null,"dinner":RECETTE|null,"dailyNutrition":{"calories":number,"proteinG":number,"carbsG":number,"fatG":number,"fiberG":number}}, ... ×7],"estimatedCost":number}
+{"days":[{"dayName":"Lundi","breakfast":RECETTE|null,"lunch":RECETTE|null,"dinner":RECETTE|null,"dailyNutrition":{"calories":number,"proteinG":number,"carbsG":number,"fatG":number,"fiberG":number,"sodiumMg":number,"calciumMg":number,"ironMg":number,"potassiumMg":number,"zincMg":number,"magnesiumMg":number,"vitaminAug":number,"vitaminCMg":number,"vitaminDiu":number,"vitaminB12ug":number,"folateMcg":number}}, ... ×7],"estimatedCost":number}
 Chaque RECETTE: {"name":"...","description":"...","cookingTime":number,"servings":${N},"ingredients":["..."],"instructions":["..."],"estimatedCost":number,"difficultyLevel":"Facile"|"Moyen"|"Avancé"}
 Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
 
@@ -380,7 +392,7 @@ Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 4500,
+      max_tokens: 6000,
     });
 
     let fullContent = "";

@@ -152,18 +152,39 @@ function MealCard({ meal, type }: { meal: Meal | null | undefined; type: "breakf
   );
 }
 
-type DailyNutrition = { calories?: number; proteinG?: number; carbsG?: number; fatG?: number; fiberG?: number };
+type DailyNutrition = {
+  calories?: number; proteinG?: number; carbsG?: number; fatG?: number; fiberG?: number;
+  sodiumMg?: number; calciumMg?: number; ironMg?: number; potassiumMg?: number;
+  zincMg?: number; magnesiumMg?: number;
+  vitaminAug?: number; vitaminCMg?: number; vitaminDiu?: number; vitaminB12ug?: number; folateMcg?: number;
+};
+
+type NutTab = "macros" | "mineraux" | "vitamines";
+
+function MacroBar({ label, value, unit, max, color }: { label: string; value: number | undefined; unit: string; max: number; color: string }) {
+  const pct = Math.min(100, ((value ?? 0) / max) * 100);
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs font-semibold text-muted-foreground w-20 shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs font-bold text-foreground w-16 text-right shrink-0">{value != null ? `${value} ${unit}` : "—"}</span>
+    </div>
+  );
+}
 
 function NutritionPanel({ nutrition }: { nutrition: DailyNutrition | undefined }) {
   const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<NutTab>("macros");
   if (!nutrition) return null;
-  const pills = [
-    { v: `${nutrition.calories ?? "—"}`, label: "kcal", bar: null, cls: "text-amber-700 dark:text-amber-300", bg: "bg-amber-400" },
-    { v: `${nutrition.proteinG ?? "—"}g`, label: "Protéines", bar: Math.min(100, ((nutrition.proteinG ?? 0) / 60) * 100), cls: "text-blue-700 dark:text-blue-300", bg: "bg-blue-400" },
-    { v: `${nutrition.carbsG ?? "—"}g`, label: "Glucides", bar: Math.min(100, ((nutrition.carbsG ?? 0) / 250) * 100), cls: "text-orange-700 dark:text-orange-300", bg: "bg-orange-400" },
-    { v: `${nutrition.fatG ?? "—"}g`, label: "Lipides", bar: Math.min(100, ((nutrition.fatG ?? 0) / 70) * 100), cls: "text-yellow-700 dark:text-yellow-300", bg: "bg-yellow-400" },
-    { v: `${nutrition.fiberG ?? "—"}g`, label: "Fibres", bar: Math.min(100, ((nutrition.fiberG ?? 0) / 28) * 100), cls: "text-green-700 dark:text-green-300", bg: "bg-green-500" },
+
+  const tabs: { key: NutTab; label: string }[] = [
+    { key: "macros", label: "Macros" },
+    { key: "mineraux", label: "Minéraux" },
+    { key: "vitamines", label: "Vitamines" },
   ];
+
   return (
     <div className="border-t border-border/15">
       <button
@@ -176,6 +197,7 @@ function NutritionPanel({ nutrition }: { nutrition: DailyNutrition | undefined }
         </span>
         <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
+
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
@@ -186,23 +208,62 @@ function NutritionPanel({ nutrition }: { nutrition: DailyNutrition | undefined }
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-5 pt-1 space-y-3">
-              {/* Calories big stat */}
-              <div className="flex items-baseline gap-2 pb-2 border-b border-border/15">
+            <div className="px-5 pb-5 pt-1">
+              {/* Calories headline */}
+              <div className="flex items-baseline gap-2 pb-3 mb-3 border-b border-border/15">
                 <span className="text-2xl font-display font-bold text-foreground">{nutrition.calories ?? "—"}</span>
                 <span className="text-sm text-muted-foreground">kcal / jour</span>
               </div>
-              {/* Macro bars */}
-              {pills.filter(p => p.bar !== null).map(p => (
-                <div key={p.label} className="flex items-center gap-3">
-                  <span className={`text-xs font-semibold w-16 shrink-0 ${p.cls}`}>{p.label}</span>
-                  <div className="flex-1 h-2 bg-muted/40 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full transition-all duration-500 ${p.bg}`} style={{ width: `${p.bar}%` }} />
-                  </div>
-                  <span className="text-xs font-bold text-foreground w-10 text-right">{p.v}</span>
+
+              {/* Tabs */}
+              <div className="flex gap-1 mb-4 bg-muted/30 rounded-xl p-1">
+                {tabs.map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-all ${
+                      tab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Macros tab */}
+              {tab === "macros" && (
+                <div className="space-y-2.5">
+                  <MacroBar label="Protéines" value={nutrition.proteinG} unit="g" max={60} color="bg-blue-400" />
+                  <MacroBar label="Glucides" value={nutrition.carbsG} unit="g" max={250} color="bg-orange-400" />
+                  <MacroBar label="Lipides" value={nutrition.fatG} unit="g" max={70} color="bg-yellow-400" />
+                  <MacroBar label="Fibres" value={nutrition.fiberG} unit="g" max={28} color="bg-green-500" />
                 </div>
-              ))}
-              <p className="text-[10px] text-muted-foreground/50 pt-1">Valeurs estimées · % calculé sur apports journaliers de référence.</p>
+              )}
+
+              {/* Minéraux tab */}
+              {tab === "mineraux" && (
+                <div className="space-y-2.5">
+                  <MacroBar label="Sodium" value={nutrition.sodiumMg} unit="mg" max={1500} color="bg-red-400" />
+                  <MacroBar label="Calcium" value={nutrition.calciumMg} unit="mg" max={1000} color="bg-slate-400" />
+                  <MacroBar label="Fer" value={nutrition.ironMg} unit="mg" max={18} color="bg-rose-500" />
+                  <MacroBar label="Potassium" value={nutrition.potassiumMg} unit="mg" max={3500} color="bg-violet-400" />
+                  <MacroBar label="Zinc" value={nutrition.zincMg} unit="mg" max={12} color="bg-teal-400" />
+                  <MacroBar label="Magnésium" value={nutrition.magnesiumMg} unit="mg" max={380} color="bg-emerald-500" />
+                </div>
+              )}
+
+              {/* Vitamines tab */}
+              {tab === "vitamines" && (
+                <div className="space-y-2.5">
+                  <MacroBar label="Vit. A" value={nutrition.vitaminAug} unit="μg" max={900} color="bg-amber-400" />
+                  <MacroBar label="Vit. C" value={nutrition.vitaminCMg} unit="mg" max={90} color="bg-orange-500" />
+                  <MacroBar label="Vit. D" value={nutrition.vitaminDiu} unit="UI" max={600} color="bg-yellow-500" />
+                  <MacroBar label="Vit. B12" value={nutrition.vitaminB12ug != null ? Math.round(nutrition.vitaminB12ug * 10) / 10 : undefined} unit="μg" max={2.4} color="bg-pink-400" />
+                  <MacroBar label="Folate" value={nutrition.folateMcg} unit="μg" max={400} color="bg-lime-500" />
+                </div>
+              )}
+
+              <p className="text-[10px] text-muted-foreground/40 pt-3">Valeurs estimées · % des apports journaliers de référence (Santé Canada).</p>
             </div>
           </motion.div>
         )}
