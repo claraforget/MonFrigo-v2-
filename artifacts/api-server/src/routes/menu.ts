@@ -212,20 +212,38 @@ Définitions: ${diffTimings}
 ═══ RÈGLES PAR TYPE DE REPAS ═══
 
 DÉJEUNER (breakfast) = repas du matin rapide et nutritif:
-• Format compact: 4-5 ingrédients, 2 étapes, description 10 mots max
+• 4-6 ingrédients AVEC QUANTITÉS PRÉCISES, 3 étapes claires, description 12 mots max
 • Exemples: bol de gruau banane-beurre d'amande-cannelle | toast avocat-œuf poché-flocons de chili | smoothie bowl mangue-gingembre-graines de chia | omelette feta-épinards-herbes fraîches | yogourt grec-granola-fruits rouges-miel
 
 DÎNER (lunch, midi) = repas froid/tiède facile à préparer à l'avance ou apporter:
-• Format compact: 5-6 ingrédients, 2-3 étapes, description 12 mots max
+• 6-8 ingrédients AVEC QUANTITÉS PRÉCISES, 3-4 étapes claires, description 15 mots max
 • TYPES OBLIGATOIRES: sandwich, wrap, salade-repas, bol froid, pita, bento ou soupe+pain — PAS un sauté chaud de restaurant
 • Exemples: wrap de poulet pesto-tomates séchées-roquette | sandwich thon-avocat-câpres sur pain de seigle | bol de quinoa poulet-feta-olives-citron | salade de lentilles aux herbes et vinaigrette moutarde | pita falafels-houmous-taboulé | bento saumon-riz-crudités-sésame
 
 SOUPER (dinner) = repas principal chaud, savoureux et bien assaisonné:
-• Format riche: 7-8 ingrédients, 3 étapes précises, description 15-20 mots
+• 9-11 ingrédients AVEC QUANTITÉS PRÉCISES, 5-6 étapes détaillées (2 phrases précises/étape — technique culinaire + geste), description 20 mots max
 • Épices/herbes obligatoires (ex: cumin, paprika fumé, zaatar, gingembre, coriandre, garam masala, tamari, harissa, sumac)
 • Protéines à varier (inclure des végétales!): poulet, bœuf, porc, agneau, saumon, crevettes, tilapia, morue ET tofu ferme, tempeh, seitan, lentilles, pois chiches, haricots noirs, edamame, œufs
 • Exemples végétaux inspirants: tofu croustillant tamari-sésame + bok choy sauté + riz jasmin | tempeh miso-érable + brocoli caramélisé + quinoa | curry rouge pois chiches-épinards + riz basmati | lentilles beluga sauce tomate-harissa + couscous | seitan grillé marinade chimichurri + patate douce rôtie | dhal de lentilles corail au lait de coco + naan grillé
 • Exemples avec protéines animales: saumon poché lait de coco-curry rouge + basmati à la citronnelle | poulet tikka masala maison + naan | bowl zaatar-sumac poulet + houmous + tabboulé | crevettes sautées à l'ail-citron-persil + linguines | agneau braisé aux épices marocaines + couscous
+
+FORMAT INGRÉDIENTS — RÈGLE ABSOLUE:
+Chaque ingrédient DOIT inclure quantité + unité + nom précis. Exemples obligatoires:
+• Protéines: "300 g de poitrines de poulet sans os", "2 filets de saumon (150 g chacun)", "1 boîte (540 ml) de pois chiches rincés et égouttés", "200 g de tofu ferme, coupé en cubes"
+• Légumes: "2 poivrons rouges, tranchés en lanières", "200 g de brocoli en fleurons", "1 gros oignon jaune, émincé finement"
+• Liquides: "250 ml de bouillon de poulet faible en sodium", "1 boîte (400 ml) de lait de coco entier", "30 ml de sauce tamari", "15 ml d'huile d'olive extra-vierge"
+• Épices: "5 ml de cumin moulu", "3 gousses d'ail, émincées", "2 ml de sel de mer", "5 ml de paprika fumé"
+• Féculents: "200 g de riz basmati (sec)", "180 g de pâtes penne (sèches)", "100 g de quinoa (sec)"
+JAMAIS "poulet", "ail", "huile" sans quantité ni unité. TOUJOURS unité + quantité numérique.
+
+INSTRUCTIONS — STANDARD PROFESSIONNEL (style Ricardo / Trois fois par jour):
+• Déjeuner: 3 étapes simples (30-40 mots/étape)
+• Dîner: 3-4 étapes (40-60 mots/étape), technique précise
+• Souper: 5-6 étapes riches (50-80 mots/étape) — "Faire chauffer 15 ml d'huile d'olive dans une grande poêle à feu moyen-vif. Ajouter l'oignon et les poivrons, faire revenir 4-5 minutes jusqu'à ce qu'ils ramollissent." — TECHNIQUE + GESTE + DURÉE + RÉSULTAT VISUEL attendu dans chaque étape.
+
+NUTRITION JOURNALIÈRE — OBLIGATOIRE DANS CHAQUE JOUR:
+Le champ "dailyNutrition" DOIT figurer dans les 7 jours, jamais absent ni null.
+Format: {"calories": 1950, "proteinG": 56, "carbsG": 242, "fatG": 66, "fiberG": 30}
 
 RÈGLES DE VARIÉTÉ — CRITIQUE:
 1. MÊME JOURNÉE: jamais le même ingrédient vedette (légume, protéine, féculent) dans deux repas du même jour. Si lunch=épinards → souper SANS épinards. Si lunch=poulet → souper SANS poulet. Si lunch=quinoa → souper SANS quinoa.
@@ -265,7 +283,7 @@ Commence IMMÉDIATEMENT par { sans aucun texte avant.`;
       model,
       messages: [{ role: "user", content: prompt }],
       stream: true,
-      max_tokens: 3500,
+      max_tokens: 4500,
     });
 
     let fullContent = "";
@@ -457,7 +475,83 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
     .where(eq(fridgeIngredientsTable.userId, userId));
   const fridgeNames = fridgeItems.map(i => i.name.toLowerCase().trim());
 
-  const ingredientMap = new Map<string, { quantity: string; unit: string; estimatedPrice: number }>();
+  // ── Ingredient parser ──────────────────────────────────────────────────────
+  type Parsed = { displayName: string; groupKey: string; totalG: number; totalMl: number; totalUnits: number; rawUnit: string };
+
+  function parseIngredientLine(raw: string): { groupKey: string; displayName: string; amountG: number; amountMl: number; units: number; rawUnit: string } {
+    const s = raw.trim();
+    // Match leading number (int, decimal, fraction) + optional unit + "de/d'/du/des..." + name
+    const re = /^(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)\s*(g|kg|ml|l|litre[s]?|tasse[s]?|c\.?\s*à\s*soupe|c\.?\s*à\s*thé|lb[s]?|livre[s]?|oz|boîte[s]?|boite[s]?|sachet[s]?|paquet[s]?|tranche[s]?|filet[s]?|pot[s]?|bouteille[s]?|portion[s]?|gousse[s]?)?\s*(?:de\s+|d[''\s]|du\s+|des\s+|de\s+la\s+|de\s+l[''\s])?\s*(.+)/i;
+    const m = s.match(re);
+    if (!m) return { groupKey: s.toLowerCase(), displayName: s, amountG: 0, amountMl: 0, units: 1, rawUnit: "unité" };
+
+    // Parse amount (handle "1/2")
+    const rawNum = m[1].replace(",", ".");
+    let amount = rawNum.includes("/") ? rawNum.split("/").reduce((a, b, i) => i === 0 ? parseFloat(a as unknown as string) : (a as unknown as number) / parseFloat(b), 0 as unknown as number) as unknown as number : parseFloat(rawNum);
+    const rawUnit = (m[2] || "unité").toLowerCase().replace(/s$/, "").trim();
+    // Clean name: remove parenthetical notes, trailing qualifiers
+    const displayName = m[3].trim().replace(/\s*\([^)]*\)/g, "").replace(/,\s*[a-zéèêëàâîïùûôœ].*$/i, "").trim();
+    const groupKey = displayName.toLowerCase().replace(/[éèêë]/g, "e").replace(/[àâ]/g, "a").replace(/[îï]/g, "i").replace(/[ùû]/g, "u").replace(/[ôœ]/g, "o").replace(/\s+/g, " ");
+
+    // Convert to base units
+    const toG: Record<string, number> = { kg: 1000, g: 1, lb: 454, livre: 454, oz: 28 };
+    const toMl: Record<string, number> = { l: 1000, litre: 1000, ml: 1, tasse: 250, "c. a soupe": 15, "c. a the": 5 };
+    const gMult = toG[rawUnit] ?? 0;
+    const mlMult = toMl[rawUnit] ?? 0;
+    const isUnit = !gMult && !mlMult;
+    return {
+      groupKey, displayName,
+      amountG: gMult ? amount * gMult : 0,
+      amountMl: mlMult ? amount * mlMult : 0,
+      units: isUnit ? amount : 0,
+      rawUnit,
+    };
+  }
+
+  function toGroceryFormat(p: Parsed): { quantity: string; unit: string; price: number } {
+    const n = p.groupKey;
+    if (p.totalG > 0) {
+      const g = p.totalG;
+      if (/poulet|dinde|veau|porc(?!el)|agneau|boeuf|bœuf/.test(n))    return { quantity: `${Math.max(1, Math.ceil(g / 450))}`, unit: "paquet(s) 450 g",  price: Math.max(1, Math.ceil(g / 450)) * 7.99 };
+      if (/saumon|tilapia|morue|dore|doré|truite|poisson|flétan|sole|basa|mahi/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 400))}`, unit: "paquet(s) 400 g",  price: Math.max(1, Math.ceil(g / 400)) * 8.99 };
+      if (/crevette/.test(n))  return { quantity: `${Math.max(1, Math.ceil(g / 340))}`, unit: "sac(s) 340 g",    price: Math.max(1, Math.ceil(g / 340)) * 9.99 };
+      if (/tofu/.test(n))      return { quantity: `${Math.max(1, Math.ceil(g / 350))}`, unit: "bloc(s) 350 g",   price: Math.max(1, Math.ceil(g / 350)) * 3.49 };
+      if (/tempeh/.test(n))    return { quantity: `${Math.max(1, Math.ceil(g / 240))}`, unit: "paquet(s) 240 g", price: Math.max(1, Math.ceil(g / 240)) * 4.49 };
+      if (/fromage|mozzarella|cheddar|parmesan|feta|feta|ricotta/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 250))}`, unit: "bloc(s) 250 g", price: Math.max(1, Math.ceil(g / 250)) * 5.49 };
+      if (/beurre(?! d)/.test(n))  return { quantity: `${Math.max(1, Math.ceil(g / 250))}`, unit: "plaquette(s) 250 g", price: Math.max(1, Math.ceil(g / 250)) * 4.29 };
+      if (/epinard|roquette|mache|laitue/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 142))}`, unit: "contenant(s) 142 g", price: Math.max(1, Math.ceil(g / 142)) * 3.99 };
+      if (/farine|sucre/.test(n))  return { quantity: `${Math.max(1, Math.ceil(g / 1000))}`, unit: "sac(s) 1 kg",   price: Math.max(1, Math.ceil(g / 1000)) * 4.49 };
+      if (/riz|pate|avoine|gruau|quinoa|couscous|lentille/.test(n)) return { quantity: `${Math.max(1, Math.ceil(g / 900))}`, unit: "sac(s) 900 g", price: Math.max(1, Math.ceil(g / 900)) * 4.99 };
+      const rounded = Math.ceil(g / 100) * 100;
+      return { quantity: `${rounded} g`, unit: "", price: Math.ceil(g / 100) * 1.50 };
+    }
+    if (p.totalMl > 0) {
+      const ml = p.totalMl;
+      if (/lait(?! de coco)/.test(n))  return { quantity: `${Math.max(1, Math.ceil(ml / 2000))}`, unit: "carton(s) 2 L",   price: Math.max(1, Math.ceil(ml / 2000)) * 5.49 };
+      if (/bouillon/.test(n))           return { quantity: `${Math.max(1, Math.ceil(ml / 900))}`,  unit: "carton(s) 900 ml",price: Math.max(1, Math.ceil(ml / 900)) * 3.49 };
+      if (/lait de coco|creme de coco/.test(n)) return { quantity: `${Math.max(1, Math.ceil(ml / 400))}`, unit: "boîte(s) 400 ml", price: Math.max(1, Math.ceil(ml / 400)) * 2.99 };
+      if (/creme|crème/.test(n))        return { quantity: `${Math.max(1, Math.ceil(ml / 473))}`,  unit: "contenant(s) 473 ml", price: Math.max(1, Math.ceil(ml / 473)) * 3.99 };
+      if (/passata|sauce tomate|coulis/.test(n)) return { quantity: `${Math.max(1, Math.ceil(ml / 680))}`, unit: "bocal(s) 680 ml", price: Math.max(1, Math.ceil(ml / 680)) * 2.99 };
+      if (/huile/.test(n))              return { quantity: "1", unit: "bouteille 750 ml", price: 7.99 };
+      if (/tamari|sauce soya|soya/.test(n)) return { quantity: "1", unit: "bouteille 250 ml", price: 4.99 };
+      if (/vinaigre/.test(n))           return { quantity: "1", unit: "bouteille 500 ml", price: 3.99 };
+      const containers = Math.max(1, Math.ceil(ml / 500));
+      return { quantity: `${containers}`, unit: "contenant(s) 500 ml", price: containers * 3.99 };
+    }
+    // Unit-based
+    const u = Math.max(1, Math.ceil(p.totalUnits));
+    if (/oeuf|œuf/.test(n))         return { quantity: `${Math.max(1, Math.ceil(u / 12))}`, unit: "douzaine(s)", price: Math.max(1, Math.ceil(u / 12)) * 5.49 };
+    if (/oignon|echalote/.test(n))  return { quantity: `${Math.max(1, Math.ceil(u / 6))}`,  unit: "sac(s) de 6", price: Math.max(1, Math.ceil(u / 6)) * 3.99 };
+    if (/carotte/.test(n))          return { quantity: `${Math.max(1, Math.ceil(u / 6))}`,  unit: "sac(s) de 6", price: Math.max(1, Math.ceil(u / 6)) * 3.49 };
+    if (/pomme de terre|patate/.test(n)) return { quantity: `${Math.max(1, Math.ceil(u / 5))}`, unit: "sac(s) 2.27 kg", price: Math.max(1, Math.ceil(u / 5)) * 5.99 };
+    if (/citron|lime/.test(n))      return { quantity: `${Math.max(1, Math.ceil(u / 3))}`,  unit: "filet(s) de 3",price: Math.max(1, Math.ceil(u / 3)) * 2.99 };
+    if (/boite|boîte|conserve/.test(p.rawUnit)) return { quantity: `${u}`, unit: "boîte(s) 540 ml", price: u * 2.29 };
+    if (/gousse/.test(p.rawUnit))   return { quantity: "1", unit: "tête d'ail", price: 1.49 };
+    return { quantity: `${u}`, unit: "unité(s)", price: u * 2.49 };
+  }
+
+  // Accumulate parsed ingredient totals per group key
+  const parsedMap = new Map<string, Parsed>();
 
   const days = menu.days as Array<{
     dayName: string;
@@ -468,28 +562,38 @@ router.get("/menu/shopping-list", async (req, res): Promise<void> => {
 
   for (const day of days) {
     for (const meal of [day.breakfast, day.lunch, day.dinner]) {
-      for (const ingredient of (meal?.ingredients ?? [])) {
-        const name = ingredient.toLowerCase().trim();
-        if (!ingredientMap.has(name)) {
-          ingredientMap.set(name, {
-            quantity: "1",
-            unit: "unité",
-            estimatedPrice: 2 + Math.random() * 5,
+      for (const raw of (meal?.ingredients ?? [])) {
+        const p = parseIngredientLine(raw);
+        const existing = parsedMap.get(p.groupKey);
+        if (existing) {
+          existing.totalG     += p.amountG;
+          existing.totalMl    += p.amountMl;
+          existing.totalUnits += p.units;
+        } else {
+          parsedMap.set(p.groupKey, {
+            displayName: p.displayName,
+            groupKey: p.groupKey,
+            totalG:     p.amountG,
+            totalMl:    p.amountMl,
+            totalUnits: p.units,
+            rawUnit:    p.rawUnit,
           });
         }
       }
     }
   }
 
-  const shoppingList = Array.from(ingredientMap.entries()).map(([name, data]) => {
-    const category = getCategoryForIngredient(name);
+  const shoppingList = Array.from(parsedMap.values()).map((p) => {
+    const grocery = toGroceryFormat(p);
+    const category = getCategoryForIngredient(p.groupKey);
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
     return {
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      quantity: data.quantity,
-      unit: data.unit,
+      name: cap(p.displayName),
+      quantity: grocery.quantity,
+      unit: grocery.unit,
       category,
-      estimatedPrice: Math.round(data.estimatedPrice * 100) / 100,
-      inFridge: fridgeNames.some(f => f.includes(name) || name.includes(f)),
+      estimatedPrice: Math.round(grocery.price * 100) / 100,
+      inFridge: fridgeNames.some(f => f.includes(p.groupKey) || p.groupKey.includes(f)),
     };
   });
 

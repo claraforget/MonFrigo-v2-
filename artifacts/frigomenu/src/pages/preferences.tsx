@@ -292,8 +292,8 @@ export default function PreferencesPage() {
           </Card>
 
           <Card className="p-8 flex flex-col items-center justify-center text-center space-y-4">
-            <div className="p-4 bg-secondary/10 rounded-2xl">
-              <Users className="w-8 h-8 text-secondary" />
+            <div className="p-4 bg-blue-500/10 rounded-2xl">
+              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" strokeWidth={1.75} />
             </div>
             <h3 className="font-medium text-muted-foreground">Personnes</h3>
             <Input 

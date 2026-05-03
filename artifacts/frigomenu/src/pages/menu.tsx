@@ -1,7 +1,7 @@
 import { useGetCurrentMenu, useDeleteCurrentMenu } from "@workspace/api-client-react";
-import { Card, Button, Badge } from "@/components/ui-elements";
+import { Card, Button } from "@/components/ui-elements";
 import { useQueryClient } from "@tanstack/react-query";
-import { Sparkles, Printer, Clock, DollarSign, ChevronDown, CheckCircle2, Trash2 } from "lucide-react";
+import { Sparkles, Printer, Clock, DollarSign, ChevronDown, Trash2, Users, CalendarRange } from "lucide-react";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { jsPDF } from "jspdf";
 import { motion, AnimatePresence } from "framer-motion";
@@ -10,28 +10,52 @@ import { usePaywall } from "@/hooks/usePaywall";
 import { PaywallModal } from "@/components/PaywallModal";
 import { useAuth } from "@/context/AuthContext";
 
-function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Meal | null | undefined, forceOpen?: boolean }) {
-  const [expanded, setExpanded] = useState(false);
-  const isOpen = expanded || forceOpen;
+const MEAL_STYLE = {
+  breakfast: {
+    label: "Déjeuner",
+    accent: "border-l-amber-400",
+    badge: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/60",
+  },
+  lunch: {
+    label: "Dîner",
+    accent: "border-l-sky-400",
+    badge: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-800/60",
+  },
+  dinner: {
+    label: "Souper",
+    accent: "border-l-primary",
+    badge: "bg-primary/10 text-primary border-primary/25",
+  },
+};
 
+function MealCard({ meal, type }: { meal: Meal | null | undefined; type: "breakfast" | "lunch" | "dinner" }) {
+  const [expanded, setExpanded] = useState(false);
   if (!meal) return null;
+  const style = MEAL_STYLE[type];
 
   return (
-    <div className="border border-border/40 rounded-2xl overflow-hidden bg-card hover:border-border/80 transition-all print-break-inside-avoid">
-      <button 
+    <div className={`border border-border/30 border-l-4 ${style.accent} rounded-2xl overflow-hidden bg-card hover:shadow-sm transition-all print-break-inside-avoid`}>
+      <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between p-5 text-left"
+        className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-3"
       >
-        <div className="flex items-center gap-4">
-          <span className="font-bold text-muted-foreground w-20 uppercase tracking-widest text-[10px] sm:text-xs">{title}</span>
-          <span className="font-semibold text-foreground text-sm sm:text-base">{meal.name}</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${style.badge}`}>
+            {style.label}
+          </span>
+          <div className="min-w-0">
+            <span className="font-semibold text-foreground text-sm sm:text-base block truncate leading-tight">{meal.name}</span>
+            {!expanded && meal.description && (
+              <span className="text-xs text-muted-foreground italic line-clamp-1 mt-0.5 hidden sm:block">{meal.description}</span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Badge variant="outline" className="hidden sm:flex whitespace-nowrap bg-background/50 border-none">
-            <Clock className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" /> {meal.cookingTime} min
-          </Badge>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-full whitespace-nowrap">
+            <Clock className="w-3 h-3" /> {meal.cookingTime} min
+          </span>
           {meal.difficultyLevel && (
-            <span className={`hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border ${
+            <span className={`hidden sm:inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border whitespace-nowrap ${
               meal.difficultyLevel === "Facile"
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
                 : meal.difficultyLevel === "Moyen"
@@ -41,52 +65,84 @@ function MealCard({ title, meal, forceOpen = false }: { title: string, meal: Mea
               {meal.difficultyLevel}
             </span>
           )}
-          <div className={`p-1.5 rounded-full transition-colors no-print ${isOpen ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground'}`}>
-            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+          <div className={`p-1.5 rounded-full transition-colors no-print ${expanded ? "bg-primary/10 text-primary" : "text-muted-foreground/50"}`}>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expanded ? "rotate-180" : ""}`} />
           </div>
         </div>
       </button>
-      
+
       <AnimatePresence initial={false}>
-        {isOpen && (
+        {expanded && (
           <motion.div
             key="content"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.22 }}
             className="overflow-hidden"
           >
-            <div className="p-5 pt-0 border-t border-border/20 bg-background/30">
-              <p className="text-sm text-muted-foreground mb-6 italic leading-relaxed">{meal.description}</p>
-              
-              <div className="grid sm:grid-cols-2 gap-8">
-                <div>
-                  <h4 className="font-bold text-[11px] uppercase tracking-wider mb-4 text-foreground/70 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary" /> Ingrédients
+            <div className="px-4 sm:px-5 pb-5 pt-0 border-t border-border/20">
+              {meal.description && (
+                <p className="text-sm text-muted-foreground italic leading-relaxed my-4 pl-3 border-l-2 border-border/40">
+                  {meal.description}
+                </p>
+              )}
+
+              <div className="grid sm:grid-cols-[1fr_1.3fr] gap-5 mt-1">
+                {/* Ingrédients */}
+                <div className="bg-muted/20 rounded-2xl p-4">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-3">
+                    🛒 Ingrédients
                   </h4>
-                  <ul className="space-y-2">
-                    {meal.ingredients.map((ing, i) => (
-                      <li key={i} className="text-sm flex items-start group">
-                        <CheckCircle2 className="w-4 h-4 mr-2.5 text-primary/40 mt-0.5 group-hover:text-primary transition-colors" /> 
-                        <span className="text-foreground/80">{ing}</span>
-                      </li>
-                    ))}
+                  <ul className="space-y-1.5">
+                    {meal.ingredients.map((ing, i) => {
+                      const m = ing.match(/^(\d[\d\s.,/]*\s*(?:g|kg|ml|L|tasse[s]?|c\.\s*à\s*[st]|lb|oz|boîte[s]?|portion[s]?|filet[s]?|tranche[s]?)?)\s+(.+)/i);
+                      return (
+                        <li key={i} className="text-sm flex items-baseline gap-2">
+                          <span className="w-1 h-1 rounded-full bg-primary/40 shrink-0 mt-2" />
+                          {m ? (
+                            <>
+                              <span className="font-semibold text-foreground/90 whitespace-nowrap">{m[1]}</span>
+                              <span className="text-foreground/70">{m[2]}</span>
+                            </>
+                          ) : (
+                            <span className="text-foreground/80">{ing}</span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
+
+                {/* Préparation */}
                 <div>
-                  <h4 className="font-bold text-[11px] uppercase tracking-wider mb-4 text-foreground/70 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-secondary" /> Instructions
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-3 px-1">
+                    👨‍🍳 Préparation
                   </h4>
                   <ol className="space-y-3">
                     {meal.instructions.map((inst, i) => (
-                      <li key={i} className="text-sm text-foreground/80 leading-relaxed flex items-start">
-                        <span className="font-display font-bold text-muted-foreground mr-3 mt-0.5">{i + 1}.</span>
-                        {inst}
+                      <li key={i} className="flex gap-3 items-start">
+                        <span className="w-5 h-5 rounded-full bg-primary/12 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 border border-primary/20">
+                          {i + 1}
+                        </span>
+                        <span className="text-sm text-foreground/80 leading-relaxed">{inst}</span>
                       </li>
                     ))}
                   </ol>
                 </div>
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/15">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {meal.cookingTime} min</span>
+                  {meal.servings && <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> {meal.servings} pers.</span>}
+                </div>
+                {Number(meal.estimatedCost) > 0 && (
+                  <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-full dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50">
+                    ~{Number(meal.estimatedCost).toFixed(2)} $ / repas
+                  </span>
+                )}
               </div>
             </div>
           </motion.div>
@@ -513,37 +569,35 @@ export default function MenuPage() {
             } | undefined;
             return (
               <Card key={idx} className="p-0 overflow-hidden print-break-inside-avoid shadow-sm hover:shadow-md transition-shadow">
-                <div className="bg-primary/5 px-8 py-5 border-b border-primary/10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                  <h2 className="text-2xl font-display font-bold text-primary shrink-0">{day.dayName}</h2>
-                  {nutrition && (
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                        <strong className="text-foreground">{nutrition.calories ?? "—"}</strong> kcal
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
-                        <strong className="text-foreground">{nutrition.proteinG ?? "—"}g</strong> prot.
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-orange-400 inline-block" />
-                        <strong className="text-foreground">{nutrition.carbsG ?? "—"}g</strong> glucides
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-yellow-300 inline-block" />
-                        <strong className="text-foreground">{nutrition.fatG ?? "—"}g</strong> lipides
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" />
-                        <strong className="text-foreground">{nutrition.fiberG ?? "—"}g</strong> fibres
-                      </span>
+                <div className="bg-gradient-to-r from-primary/8 to-transparent px-7 py-5 border-b border-primary/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                        <CalendarRange className="w-4.5 h-4.5 text-primary" />
+                      </div>
+                      <h2 className="text-2xl font-display font-bold text-primary">{day.dayName}</h2>
                     </div>
-                  )}
+                    {nutrition && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { v: `${nutrition.calories ?? "—"}`, label: "kcal", cls: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-300 dark:border-amber-800/50" },
+                          { v: `${nutrition.proteinG ?? "—"}g`, label: "prot.", cls: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-800/50" },
+                          { v: `${nutrition.carbsG ?? "—"}g`, label: "gluc.", cls: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/30 dark:text-orange-300 dark:border-orange-800/50" },
+                          { v: `${nutrition.fatG ?? "—"}g`, label: "lip.", cls: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-300 dark:border-yellow-800/50" },
+                          { v: `${nutrition.fiberG ?? "—"}g`, label: "fibres", cls: "bg-green-50 text-green-700 border-green-200 dark:bg-green-950/30 dark:text-green-300 dark:border-green-800/50" },
+                        ].map(p => (
+                          <span key={p.label} className={`inline-flex items-baseline gap-1 px-2.5 py-0.5 rounded-full text-[11px] border font-medium ${p.cls}`}>
+                            <strong className="font-bold">{p.v}</strong> {p.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="p-5 sm:p-8 space-y-4 bg-card">
-                  <MealCard title="Déjeuner" meal={day.breakfast} />
-                  <MealCard title="Dîner" meal={day.lunch} />
-                  <MealCard title="Souper" meal={day.dinner} />
+                <div className="p-4 sm:p-6 space-y-3 bg-card">
+                  <MealCard type="breakfast" meal={day.breakfast} />
+                  <MealCard type="lunch" meal={day.lunch} />
+                  <MealCard type="dinner" meal={day.dinner} />
                 </div>
               </Card>
             );
